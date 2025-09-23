@@ -1,0 +1,3 @@
+* text=auto eol=lf
+*.{cmd,[cC]md} text eol=crlf
+*.{bat,[bB]at} text eol=crlf
