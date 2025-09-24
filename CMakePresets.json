@@ -1,0 +1,68 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "mac-rel",
+      "generator": "Ninja",
+      "binaryDir": "build/mac-rel",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "AEROFORGE_WITH_DJI": "OFF",
+        "AEROFORGE_WITH_IMGUI": "ON"
+      }
+    },
+    {
+      "name": "mac-debug",
+      "generator": "Ninja",
+      "binaryDir": "build/mac-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "AEROFORGE_WITH_DJI": "OFF",
+        "AEROFORGE_WITH_IMGUI": "ON",
+        "AEROFORGE_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "win-rel",
+      "generator": "Ninja",
+      "binaryDir": "build/win-rel",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "AEROFORGE_WITH_DJI": "OFF",
+        "AEROFORGE_WITH_IMGUI": "ON"
+      }
+    },
+    {
+      "name": "win-debug",
+      "generator": "Ninja",
+      "binaryDir": "build/win-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "AEROFORGE_WITH_DJI": "OFF",
+        "AEROFORGE_WITH_IMGUI": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "mac-rel", "configurePreset": "mac-rel" },
+    { "name": "mac-debug", "configurePreset": "mac-debug" },
+    { "name": "win-rel", "configurePreset": "win-rel" },
+    { "name": "win-debug", "configurePreset": "win-debug" }
+  ],
+  "testPresets": [
+    {
+      "name": "mac-tests",
+      "configurePreset": "mac-rel",
+      "output": {"verbosity": "normal"}
+    },
+    {
+      "name": "win-tests",
+      "configurePreset": "win-rel",
+      "output": {"verbosity": "normal"}
+    }
+  ]
+}

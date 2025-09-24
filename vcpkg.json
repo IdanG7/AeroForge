@@ -1,0 +1,17 @@
+{
+  "name": "aeroforge",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "opencv4",
+    {
+      "name": "imgui",
+      "features": ["glfw-binding", "opengl3-binding"]
+    },
+    "glfw3",
+    "yaml-cpp",
+    "fmt",
+    "spdlog",
+    "catch2",
+    "eigen3"
+  ]
+}
