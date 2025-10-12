@@ -1,0 +1,56 @@
+pipeline:
+  input:
+    type: webcam
+    device: 0
+    size:
+      width: 1280
+      height: 720
+      fps: 30
+
+  modules:
+    - name: detector
+      type: aruco
+      params:
+        dict_id: 10  # DICT_4X4_50
+
+    - name: tracker
+      type: kalman
+      params:
+        q: 0.02
+        r: 0.15
+
+    - name: estimator
+      type: ground_plane
+      params:
+        fx: 920.0
+        fy: 920.0
+        cx: 640.0
+        cy: 360.0
+        camera_tilt_deg: 0.0
+
+    - name: controller
+      type: pid_velocity
+      params:
+        desired_offset_m: [-3.0, 0.0, 0.0]
+        kp: [0.8, 0.8, 0.6]
+        ki: [0.0, 0.0, 0.0]
+        kd: [0.1, 0.1, 0.08]
+        max_speed_mps: 3.0
+
+  sinks:
+    - type: hud
+      params:
+        draw_bbox: true
+        show_fps: true
+
+safety:
+  require_hold_to_enable: true
+  e_stop_key: "SPACE"
+  limits:
+    max_speed_mps: 6.0
+    min_follow_dist_m: 2.0
+    max_follow_dist_m: 10.0
+  geofence:
+    min_alt_m: 3.0
+    max_alt_m: 60.0
+    max_radius_m: 120.0
