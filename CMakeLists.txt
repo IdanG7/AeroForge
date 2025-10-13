@@ -60,7 +60,7 @@ endif()
 # Dependencies
 # ──────────────────────────────────────────────────────────────────────────
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui aruco)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui)
 find_package(Eigen3 REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
@@ -112,7 +112,7 @@ target_link_libraries(af_core
     opencv_core
     opencv_imgproc
     opencv_videoio
-    opencv_aruco
+    # opencv_aruco  # Temporarily disabled
     Eigen3::Eigen
     fmt::fmt
     spdlog::spdlog
@@ -155,7 +155,7 @@ endif()
 
 add_library(af_vision STATIC
   src/vision/detector_colorball.cpp
-  src/vision/detector_aruco.cpp
+  # src/vision/detector_aruco.cpp  # Temporarily disabled - requires opencv_contrib
 )
 
 target_include_directories(af_vision
@@ -168,7 +168,7 @@ target_link_libraries(af_vision
   PUBLIC
     af_core
     opencv_imgproc
-    opencv_aruco
+    # opencv_aruco  # Temporarily disabled
 )
 
 # ──────────────────────────────────────────────────────────────────────────

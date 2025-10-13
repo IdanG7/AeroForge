@@ -57,12 +57,12 @@
     {
       "name": "mac-tests",
       "configurePreset": "mac-rel",
-      "output": {"verbosity": "normal"}
+      "output": {"outputOnFailure": true}
     },
     {
       "name": "win-tests",
       "configurePreset": "win-rel",
-      "output": {"verbosity": "normal"}
+      "output": {"outputOnFailure": true}
     }
   ]
 }

@@ -8,8 +8,8 @@ double now_seconds()
 {
   using namespace std::chrono;
   auto now = high_resolution_clock::now();
-  auto duration = now.time_since_epoch();
-  return duration_cast<duration<double>>(duration).count();
+  auto dur = now.time_since_epoch();
+  return duration_cast<duration<double>>(dur).count();
 }
 
 ScopedTimer::ScopedTimer(double& out_ms) : out_ms_(out_ms), start_(now_seconds()) {}

@@ -12,12 +12,12 @@
 AeroForge is a cross-platform (macOS, Windows, Linux) C++20 framework for building vision-based drone control applications. It provides a modular, extensible pipeline for real-time object detection, tracking, pose estimation, and control with strict safety mechanisms.
 
 **Key Features:**
-- 🚀 High-performance, lock-free SPSC ring buffers for deterministic data flow
-- 🎯 Pluggable detectors: ColorBall, ArUco markers (extensible to YOLO, etc.)
-- 📊 Kalman filtering for smooth tracking
-- 🎮 PID velocity controller with configurable gains
+- 🎯 **Interactive Object Selection**: Click and drag to track ANY object in real-time
+- 🚀 High-performance template matching tracker (no OpenCV contrib needed)
+- 📊 Complete pipeline: Detection → Kalman tracking → 3D estimation → PID control
+- 🎨 **Professional redesigned UI** with organized panels and real-time visualization
 - 🛡️ Safety-first: hold-to-enable, e-stop, geofence, speed limits
-- 📹 ImGui HUD with FPS, telemetry, and detection overlays
+- 📹 ImGui HUD with FPS, telemetry, 3D position, and velocity command displays
 - ⚙️ YAML-based configuration (no recompile needed)
 - 🧪 Unit & integration tests (Catch2)
 - 🔌 DJI SDK integration (optional, gated by build flag)
@@ -80,9 +80,11 @@ cmake --build --preset mac-rel -j
 ```
 
 **Controls:**
-- **F**: Toggle safety enable/disable
+- **Click & Drag**: Select object to track on camera feed
+- **R**: Reset tracking and select new target
+- **F**: Toggle safety enable/disable (enables velocity commands)
 - **SPACE**: Emergency stop (hold mode)
-- **ESC**: Exit
+- **ESC**: Exit application
 
 ---
 

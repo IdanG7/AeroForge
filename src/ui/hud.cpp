@@ -173,7 +173,7 @@ void HUD::render_frame(const Frame& frame)
   ImGui::Begin("Camera Feed", nullptr,
                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
   ImVec2 size(static_cast<float>(rgb.cols), static_cast<float>(rgb.rows));
-  ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(impl_->texture_id)), size);
+  ImGui::Image(static_cast<ImTextureID>(static_cast<intptr_t>(impl_->texture_id)), size);
   ImGui::End();
 
   impl_->display_frame = rgb;
