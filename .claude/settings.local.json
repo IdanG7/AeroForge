@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(git push:*)",
+      "Bash(git filter-branch:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(test:*)",
+      "Bash(git submodule update:*)",
+      "Bash(cat:*)",
+      "Bash(git clone:*)",
+      "Bash(./bootstrap-vcpkg.bat)",
+      "Bash(cmake:*)",
+      "Bash(where:*)",
+      "Bash(winget install:*)",
+      "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" --preset win-rel)",
+      "Bash(\"D:/VS2019/VC/Auxiliary/Build/vcvarsall.bat\" x64)",
+      "Read(//c/Users/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(\"D:/VS2019/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe\" -S . -B build/win-rel -G \"Visual Studio 16 2019\" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=\"D:/Projects/AeroForge/vcpkg/scripts/buildsystems/vcpkg.cmake\" -DAEROFORGE_WITH_IMGUI=ON -DAEROFORGE_WITH_DJI=OFF)",
+      "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" -S . -B build/win-rel -G \"Visual Studio 16 2019\" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=\"D:/Projects/AeroForge/vcpkg/scripts/buildsystems/vcpkg.cmake\" -DAEROFORGE_WITH_IMGUI=ON -DAEROFORGE_WITH_DJI=OFF)",
+      "Bash(./vcpkg/vcpkg search:*)",
+      "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" --build build/win-rel --config RelWithDebInfo -j)",
+      "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" --build build/win-rel --config RelWithDebInfo --target aeroforge-track -j)",
+      "Bash(git rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

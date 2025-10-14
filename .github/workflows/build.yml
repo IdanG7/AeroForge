@@ -1,4 +1,4 @@
-name: Build AeroForge
+name: Build and Release
 
 on:
   push:
@@ -6,11 +6,54 @@ on:
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force create release (yes/no)'
+        required: false
+        default: 'no'
+
+env:
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
+  # Extract version from CMakeLists.txt
+  version:
+    name: Detect Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      version_changed: ${{ steps.check_tag.outputs.changed }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Extract version
+      id: get_version
+      run: |
+        VERSION=$(grep "project(AeroForge VERSION" CMakeLists.txt | sed -E 's/.*VERSION ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+        echo "📦 Version detected: v${VERSION}"
+
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        VERSION="${{ steps.get_version.outputs.version }}"
+        if git rev-parse "$VERSION" >/dev/null 2>&1; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Tag $VERSION already exists"
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "✨ New version: $VERSION"
+        fi
+
+  # Windows Build with Tests
   build-windows:
-    name: Windows Build (MSVC 2022)
+    name: Windows Build & Test
     runs-on: windows-latest
+    needs: version
 
     steps:
     - name: Checkout repository
@@ -24,65 +67,96 @@ jobs:
     - name: Setup CMake
       uses: lukka/get-cmake@latest
 
-    - name: Cache vcpkg packages
+    - name: Restore vcpkg cache
       uses: actions/cache@v4
+      id: vcpkg-cache
       with:
         path: |
           vcpkg/installed
           vcpkg/buildtrees
           vcpkg/packages
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-v2
         restore-keys: |
           ${{ runner.os }}-vcpkg-
 
     - name: Bootstrap vcpkg
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: |
         cd vcpkg
         .\bootstrap-vcpkg.bat
 
     - name: Configure CMake
       run: |
-        cmake -S . -B build/win-rel `
+        cmake -S . -B build `
           -G "Visual Studio 17 2022" -A x64 `
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
           -DAEROFORGE_WITH_IMGUI=ON `
-          -DAEROFORGE_WITH_DJI=OFF
+          -DAEROFORGE_WITH_DJI=OFF `
+          -DAEROFORGE_BUILD_TESTS=ON `
+          -DAEROFORGE_BUILD_APPS=ON
 
     - name: Build
-      run: cmake --build build/win-rel --config RelWithDebInfo -j
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} -j $env:NUMBER_OF_PROCESSORS
 
-    - name: Run Tests
+    - name: Run Unit Tests
+      working-directory: build
       run: |
-        cd build/win-rel
-        ctest -C RelWithDebInfo --output-on-failure
-      continue-on-error: true
+        Write-Host "🧪 Running unit tests..."
+        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --timeout 30
+      continue-on-error: false
 
-    - name: Package Artifacts
+    - name: Test Executables Exist
       run: |
-        mkdir artifacts
-        Copy-Item -Path "build/win-rel/bin/RelWithDebInfo/*.exe" -Destination "artifacts/" -Recurse
-        Copy-Item -Path "build/win-rel/bin/RelWithDebInfo/*.dll" -Destination "artifacts/" -Recurse -ErrorAction SilentlyContinue
+        $exe = "build/bin/${{ env.BUILD_TYPE }}/aeroforge-track.exe"
+        if (Test-Path $exe) {
+          Write-Host "✅ aeroforge-track.exe built successfully"
+        } else {
+          Write-Host "❌ aeroforge-track.exe not found!"
+          exit 1
+        }
+
+    - name: Package Windows Artifacts
+      run: |
+        New-Item -ItemType Directory -Force -Path artifacts
+
+        # Copy executables
+        Copy-Item -Path "build/bin/${{ env.BUILD_TYPE }}/*.exe" -Destination "artifacts/" -ErrorAction Stop
+
+        # Copy DLLs if any
+        Get-ChildItem -Path "build/bin/${{ env.BUILD_TYPE }}/*.dll" -ErrorAction SilentlyContinue | Copy-Item -Destination "artifacts/"
+
+        # Copy configs
         Copy-Item -Path "configs" -Destination "artifacts/configs" -Recurse
+
+        # Copy documentation
         Copy-Item -Path "README.md" -Destination "artifacts/"
+        Copy-Item -Path "docs" -Destination "artifacts/docs" -Recurse -ErrorAction SilentlyContinue
 
-    - name: Upload Build Artifacts
+        # Create version file
+        @"
+        AeroForge ${{ needs.version.outputs.version }}
+        Built: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
+        Platform: Windows x64
+        Build Type: ${{ env.BUILD_TYPE }}
+        Commit: ${{ github.sha }}
+        "@ | Out-File -FilePath "artifacts/VERSION.txt"
+
+        Write-Host "📦 Packaged Windows artifacts"
+
+    - name: Upload Windows Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: aeroforge-windows-x64
+        name: aeroforge-windows-x64-${{ needs.version.outputs.version }}
         path: artifacts/
-        retention-days: 30
-
-    - name: Upload Executables
-      uses: actions/upload-artifact@v4
-      with:
-        name: aeroforge-executables
-        path: artifacts/*.exe
         retention-days: 90
+        if-no-files-found: error
 
+  # macOS Build with Tests
   build-macos:
-    name: macOS Build (Clang)
+    name: macOS Build & Test
     runs-on: macos-latest
+    needs: version
 
     steps:
     - name: Checkout repository
@@ -93,84 +167,242 @@ jobs:
     - name: Setup CMake
       uses: lukka/get-cmake@latest
 
-    - name: Cache vcpkg packages
+    - name: Restore vcpkg cache
       uses: actions/cache@v4
+      id: vcpkg-cache
       with:
         path: |
           vcpkg/installed
           vcpkg/buildtrees
           vcpkg/packages
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-v2
         restore-keys: |
           ${{ runner.os }}-vcpkg-
 
     - name: Bootstrap vcpkg
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: |
         cd vcpkg
         ./bootstrap-vcpkg.sh
 
     - name: Configure CMake
       run: |
-        cmake -S . -B build/mac-rel \
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
           -DCMAKE_TOOLCHAIN_FILE="${GITHUB_WORKSPACE}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
           -DAEROFORGE_WITH_IMGUI=ON \
-          -DAEROFORGE_WITH_DJI=OFF
+          -DAEROFORGE_WITH_DJI=OFF \
+          -DAEROFORGE_BUILD_TESTS=ON \
+          -DAEROFORGE_BUILD_APPS=ON
 
     - name: Build
-      run: cmake --build build/mac-rel --config RelWithDebInfo -j
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} -j $(sysctl -n hw.ncpu)
 
-    - name: Run Tests
+    - name: Run Unit Tests
+      working-directory: build
       run: |
-        cd build/mac-rel
-        ctest -C RelWithDebInfo --output-on-failure
-      continue-on-error: true
+        echo "🧪 Running unit tests..."
+        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --timeout 30
+      continue-on-error: false
 
-    - name: Package Artifacts
+    - name: Test Executables Exist
+      run: |
+        if [ -f "build/bin/aeroforge-track" ]; then
+          echo "✅ aeroforge-track built successfully"
+        else
+          echo "❌ aeroforge-track not found!"
+          exit 1
+        fi
+
+    - name: Package macOS Artifacts
       run: |
         mkdir -p artifacts
-        cp build/mac-rel/bin/* artifacts/ 2>/dev/null || true
-        cp -r configs artifacts/
-        cp README.md artifacts/
 
-    - name: Upload Build Artifacts
+        # Copy executables
+        cp build/bin/* artifacts/ 2>/dev/null || true
+
+        # Copy configs
+        cp -r configs artifacts/
+
+        # Copy documentation
+        cp README.md artifacts/
+        cp -r docs artifacts/ 2>/dev/null || true
+
+        # Create version file
+        cat > artifacts/VERSION.txt << EOF
+        AeroForge ${{ needs.version.outputs.version }}
+        Built: $(date -u "+%Y-%m-%d %H:%M:%S UTC")
+        Platform: macOS ARM64
+        Build Type: ${{ env.BUILD_TYPE }}
+        Commit: ${{ github.sha }}
+        EOF
+
+        echo "📦 Packaged macOS artifacts"
+
+    - name: Upload macOS Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: aeroforge-macos-arm64
+        name: aeroforge-macos-arm64-${{ needs.version.outputs.version }}
         path: artifacts/
-        retention-days: 30
+        retention-days: 90
+        if-no-files-found: error
 
-  create-release:
+  # Automatic Release on master push with version change
+  release:
     name: Create Release
-    needs: [build-windows, build-macos]
+    needs: [version, build-windows, build-macos]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: |
+      github.ref == 'refs/heads/master' &&
+      (needs.version.outputs.version_changed == 'true' ||
+       github.event.inputs.force_release == 'yes')
+    permissions:
+      contents: write
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Download Windows Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: aeroforge-windows-x64
+        name: aeroforge-windows-x64-${{ needs.version.outputs.version }}
         path: windows-release
 
     - name: Download macOS Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: aeroforge-macos-arm64
+        name: aeroforge-macos-arm64-${{ needs.version.outputs.version }}
         path: macos-release
 
-    - name: Create ZIP Archives
+    - name: Create Release Archives
       run: |
-        cd windows-release && zip -r ../aeroforge-windows-x64.zip . && cd ..
-        cd macos-release && zip -r ../aeroforge-macos-arm64.zip . && cd ..
+        cd windows-release
+        zip -r ../aeroforge-${{ needs.version.outputs.version }}-windows-x64.zip .
+        cd ..
 
-    - name: Create Release
+        cd macos-release
+        zip -r ../aeroforge-${{ needs.version.outputs.version }}-macos-arm64.zip .
+        cd ..
+
+        echo "📦 Created release archives"
+
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        VERSION="${{ needs.version.outputs.version }}"
+
+        # Get the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+        if [ -z "$PREV_TAG" ]; then
+          CHANGES=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          CHANGES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+
+        # Create changelog
+        cat > RELEASE_NOTES.md << EOF
+        ## AeroForge ${VERSION}
+
+        ### 🎯 What's New
+
+        ${CHANGES}
+
+        ### 📦 Downloads
+
+        - **Windows (x64)**: \`aeroforge-${VERSION}-windows-x64.zip\`
+        - **macOS (ARM64)**: \`aeroforge-${VERSION}-macos-arm64.zip\`
+
+        ### 🚀 Quick Start
+
+        1. Download the archive for your platform
+        2. Extract the contents
+        3. Run: \`aeroforge-track --config configs/track_colorball.yml\`
+
+        ### 📋 Controls
+
+        - **Click & Drag**: Select object to track
+        - **R**: Reset tracking
+        - **F**: Toggle safety/control
+        - **SPACE**: Emergency stop
+        - **ESC**: Exit
+
+        ### 🔧 System Requirements
+
+        - Webcam or video input device
+        - Windows 10+ or macOS 12+
+        - 4GB RAM minimum
+
+        ---
+
+        **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${VERSION}
+        EOF
+
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Git Tag
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "${{ needs.version.outputs.version }}" -m "Release ${{ needs.version.outputs.version }}"
+        git push origin "${{ needs.version.outputs.version }}"
+
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          aeroforge-windows-x64.zip
-          aeroforge-macos-arm64.zip
+        tag_name: ${{ needs.version.outputs.version }}
+        name: AeroForge ${{ needs.version.outputs.version }}
+        body: ${{ steps.changelog.outputs.changelog }}
         draft: false
         prerelease: false
+        files: |
+          aeroforge-${{ needs.version.outputs.version }}-windows-x64.zip
+          aeroforge-${{ needs.version.outputs.version }}-macos-arm64.zip
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Release Summary
+      run: |
+        echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version**: ${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Windows x64 build" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ macOS ARM64 build" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+        echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ needs.version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [Download Windows](https://github.com/${{ github.repository }}/releases/download/${{ needs.version.outputs.version }}/aeroforge-${{ needs.version.outputs.version }}-windows-x64.zip)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Download macOS](https://github.com/${{ github.repository }}/releases/download/${{ needs.version.outputs.version }}/aeroforge-${{ needs.version.outputs.version }}-macos-arm64.zip)" >> $GITHUB_STEP_SUMMARY
+
+  # Notification job
+  notify:
+    name: Build Summary
+    needs: [version, build-windows, build-macos, release]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Summary
+      run: |
+        echo "## 🏗️ Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version**: ${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+        echo "- Windows: ${{ needs.build-windows.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- macOS: ${{ needs.build-macos.result }}" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ needs.release.result }}" != "skipped" ]; then
+          echo "- Release: ${{ needs.release.result }}" >> $GITHUB_STEP_SUMMARY
+        fi
