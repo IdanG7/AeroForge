@@ -1,0 +1,176 @@
+name: Build AeroForge
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows Build (MSVC 2022)
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+
+    - name: Cache vcpkg packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          vcpkg/installed
+          vcpkg/buildtrees
+          vcpkg/packages
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+
+    - name: Bootstrap vcpkg
+      run: |
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build/win-rel `
+          -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DAEROFORGE_WITH_IMGUI=ON `
+          -DAEROFORGE_WITH_DJI=OFF
+
+    - name: Build
+      run: cmake --build build/win-rel --config RelWithDebInfo -j
+
+    - name: Run Tests
+      run: |
+        cd build/win-rel
+        ctest -C RelWithDebInfo --output-on-failure
+      continue-on-error: true
+
+    - name: Package Artifacts
+      run: |
+        mkdir artifacts
+        Copy-Item -Path "build/win-rel/bin/RelWithDebInfo/*.exe" -Destination "artifacts/" -Recurse
+        Copy-Item -Path "build/win-rel/bin/RelWithDebInfo/*.dll" -Destination "artifacts/" -Recurse -ErrorAction SilentlyContinue
+        Copy-Item -Path "configs" -Destination "artifacts/configs" -Recurse
+        Copy-Item -Path "README.md" -Destination "artifacts/"
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aeroforge-windows-x64
+        path: artifacts/
+        retention-days: 30
+
+    - name: Upload Executables
+      uses: actions/upload-artifact@v4
+      with:
+        name: aeroforge-executables
+        path: artifacts/*.exe
+        retention-days: 90
+
+  build-macos:
+    name: macOS Build (Clang)
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+
+    - name: Cache vcpkg packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          vcpkg/installed
+          vcpkg/buildtrees
+          vcpkg/packages
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+
+    - name: Bootstrap vcpkg
+      run: |
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build/mac-rel \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DCMAKE_TOOLCHAIN_FILE="${GITHUB_WORKSPACE}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
+          -DAEROFORGE_WITH_IMGUI=ON \
+          -DAEROFORGE_WITH_DJI=OFF
+
+    - name: Build
+      run: cmake --build build/mac-rel --config RelWithDebInfo -j
+
+    - name: Run Tests
+      run: |
+        cd build/mac-rel
+        ctest -C RelWithDebInfo --output-on-failure
+      continue-on-error: true
+
+    - name: Package Artifacts
+      run: |
+        mkdir -p artifacts
+        cp build/mac-rel/bin/* artifacts/ 2>/dev/null || true
+        cp -r configs artifacts/
+        cp README.md artifacts/
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aeroforge-macos-arm64
+        path: artifacts/
+        retention-days: 30
+
+  create-release:
+    name: Create Release
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Download Windows Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: aeroforge-windows-x64
+        path: windows-release
+
+    - name: Download macOS Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: aeroforge-macos-arm64
+        path: macos-release
+
+    - name: Create ZIP Archives
+      run: |
+        cd windows-release && zip -r ../aeroforge-windows-x64.zip . && cd ..
+        cd macos-release && zip -r ../aeroforge-macos-arm64.zip . && cd ..
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          aeroforge-windows-x64.zip
+          aeroforge-macos-arm64.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

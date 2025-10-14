@@ -51,4 +51,5 @@ CTestTestfile.cmake
 *.tmp
 
 
-.claude/
+.claude/NUL
+imgui.ini
