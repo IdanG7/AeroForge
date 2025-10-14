@@ -55,7 +55,7 @@ public:
 
 private:
   double fx_, fy_, cx_, cy_;
-  double camera_tilt_deg_;
+  [[maybe_unused]] double camera_tilt_deg_;  // Reserved for future use
 };
 
 } // namespace af
