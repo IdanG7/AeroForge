@@ -67,6 +67,12 @@ jobs:
     - name: Setup CMake
       uses: lukka/get-cmake@latest
 
+    - name: Clone vcpkg
+      run: |
+        if (-not (Test-Path "vcpkg")) {
+          git clone https://github.com/microsoft/vcpkg.git
+        }
+
     - name: Restore vcpkg cache
       uses: actions/cache@v4
       id: vcpkg-cache
@@ -80,7 +86,6 @@ jobs:
           ${{ runner.os }}-vcpkg-
 
     - name: Bootstrap vcpkg
-      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: |
         cd vcpkg
         .\bootstrap-vcpkg.bat
@@ -167,6 +172,12 @@ jobs:
     - name: Setup CMake
       uses: lukka/get-cmake@latest
 
+    - name: Clone vcpkg
+      run: |
+        if [ ! -d "vcpkg" ]; then
+          git clone https://github.com/microsoft/vcpkg.git
+        fi
+
     - name: Restore vcpkg cache
       uses: actions/cache@v4
       id: vcpkg-cache
@@ -180,7 +191,6 @@ jobs:
           ${{ runner.os }}-vcpkg-
 
     - name: Bootstrap vcpkg
-      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: |
         cd vcpkg
         ./bootstrap-vcpkg.sh
