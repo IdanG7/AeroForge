@@ -147,6 +147,11 @@ if(AEROFORGE_WITH_IMGUI)
       glfw
       OpenGL::GL
   )
+
+  # Silence OpenGL deprecation warnings on macOS
+  if(APPLE)
+    target_compile_definitions(af_ui PRIVATE GL_SILENCE_DEPRECATION)
+  endif()
 endif()
 
 # ──────────────────────────────────────────────────────────────────────────
