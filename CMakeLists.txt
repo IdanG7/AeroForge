@@ -65,7 +65,7 @@ find_package(Eigen3 REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
-find_package(msgpackc-cxx REQUIRED)
+find_package(msgpack-cxx REQUIRED)
 
 if(AEROFORGE_WITH_IMGUI)
   find_package(imgui REQUIRED)
@@ -197,7 +197,7 @@ target_include_directories(af_tracking
 target_link_libraries(af_tracking
   PUBLIC
     af_core
-    msgpackc-cxx
+    msgpack-cxx
 )
 
 # ──────────────────────────────────────────────────────────────────────────

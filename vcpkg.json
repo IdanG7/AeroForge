@@ -13,6 +13,6 @@
     "spdlog",
     "catch2",
     "eigen3",
-    "msgpack-cxx"
+    "msgpack"
   ]
 }
