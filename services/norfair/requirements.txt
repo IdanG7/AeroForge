@@ -1,0 +1,4 @@
+norfair>=2.2.0
+msgpack>=1.0.0
+numpy>=1.20.0
+pyyaml>=6.0

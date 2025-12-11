@@ -1,0 +1,32 @@
+socket:
+  path: "/tmp/aeroforge_norfair.sock"
+  permissions: 0o600  # Owner read/write only
+
+tracker:
+  # Distance function: "euclidean" or "iou"
+  distance_function: "euclidean"
+
+  # Distance threshold for matching detections to tracked objects
+  # Lower = stricter matching, Higher = more lenient matching
+  distance_threshold: 30
+
+  # Maximum number of frames to keep a track alive without detections
+  # Higher = tracks survive longer occlusions
+  hit_counter_max: 15
+
+  # Number of frames to wait before initializing a new track
+  # Higher = reduces false positives from spurious detections
+  initialization_delay: 0
+
+  # Hit counter for individual points (for pointwise tracking)
+  pointwise_hit_counter_max: 4
+
+  # Minimum detection score to consider
+  detection_threshold: 0.0
+
+  # Number of past detections to keep for each track
+  past_detections_length: 4
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

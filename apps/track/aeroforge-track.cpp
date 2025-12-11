@@ -489,6 +489,16 @@ int main(int argc, char** argv)
       tracker = std::make_unique<af::KalmanTracker>(q, r);
       spdlog::info("Kalman tracker initialized");
     }
+    else if (mod.type == "norfair")
+    {
+      std::string socket_path = af::get_param<std::string>(mod.params, "socket_path", "/tmp/aeroforge_norfair.sock");
+      int timeout_ms = af::get_param<int>(mod.params, "timeout_ms", 500);
+      bool auto_reconnect = af::get_param<bool>(mod.params, "auto_reconnect", true);
+      double reconnect_max_interval_s = af::get_param<double>(mod.params, "reconnect_max_interval_s", 10.0);
+
+      tracker = std::make_unique<af::NorfairTracker>(socket_path, timeout_ms, auto_reconnect, reconnect_max_interval_s);
+      spdlog::info("Norfair tracker initialized");
+    }
     else if (mod.type == "size_based")
     {
       double obj_diam = af::get_param<double>(mod.params, "object_diameter_m", 0.20);
