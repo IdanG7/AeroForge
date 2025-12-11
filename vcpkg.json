@@ -12,6 +12,7 @@
     "fmt",
     "spdlog",
     "catch2",
-    "eigen3"
+    "eigen3",
+    "msgpack-cxx"
   ]
 }

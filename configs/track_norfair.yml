@@ -1,0 +1,60 @@
+pipeline:
+  input:
+    type: webcam
+    device: 0
+    size:
+      width: 1280
+      height: 720
+      fps: 30
+
+  modules:
+    # Interactive tracker detector (click and drag to select object)
+    - name: detector
+      type: interactive
+      params: {}
+
+    # Norfair multi-object tracker (via Python service)
+    - name: tracker
+      type: norfair
+      params:
+        socket_path: "/tmp/aeroforge_norfair.sock"
+        timeout_ms: 500
+        auto_reconnect: true
+        reconnect_max_interval_s: 10.0
+
+    # Size-based 3D pose estimator
+    - name: estimator
+      type: size_based
+      params:
+        object_diameter_m: 0.20
+        fx: 920.0
+        fy: 920.0
+        cx: 640.0
+        cy: 360.0
+
+    # PID velocity controller
+    - name: controller
+      type: pid_velocity
+      params:
+        desired_offset_m: [-3.0, 0.0, 0.0]
+        kp: [0.8, 0.8, 0.6]
+        ki: [0.0, 0.0, 0.0]
+        kd: [0.1, 0.1, 0.08]
+        max_speed_mps: 3.0
+
+  sinks:
+    - type: hud
+      params:
+        draw_bbox: true
+        show_crosshair: true
+        show_fps: true
+        show_telemetry: true
+
+  safety:
+    require_hold_to_enable: true
+    limits:
+      max_speed_mps: 6.0
+      min_follow_dist_m: 2.0
+    geofence:
+      min_alt_m: 3.0
+      max_alt_m: 60.0

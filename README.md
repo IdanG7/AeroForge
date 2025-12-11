@@ -14,7 +14,8 @@ AeroForge is a cross-platform (macOS, Windows, Linux) C++20 framework for buildi
 **Key Features:**
 - 🎯 **Interactive Object Selection**: Click and drag to track ANY object in real-time
 - 🚀 High-performance template matching tracker (no OpenCV contrib needed)
-- 📊 Complete pipeline: Detection → Kalman tracking → 3D estimation → PID control
+- 🤖 **Norfair multi-object tracking** via Python service integration
+- 📊 Complete pipeline: Detection → Tracking → 3D estimation → PID control
 - 🎨 **Professional redesigned UI** with organized panels and real-time visualization
 - 🛡️ Safety-first: hold-to-enable, e-stop, geofence, speed limits
 - 📹 ImGui HUD with FPS, telemetry, 3D position, and velocity command displays
@@ -88,6 +89,51 @@ cmake --build --preset mac-rel -j
 
 ---
 
+## Norfair Multi-Object Tracking
+
+AeroForge supports advanced multi-object tracking using the [Norfair](https://github.com/tryolabs/norfair) Python library via a high-performance IPC bridge.
+
+### Setup
+
+1. **Start the Norfair service** (one-time setup):
+```bash
+cd services/norfair
+./run.sh
+```
+
+The service will create a Python virtual environment, install dependencies, and start listening on `/tmp/aeroforge_norfair.sock`.
+
+2. **Run AeroForge with Norfair tracking**:
+```bash
+# macOS/Linux
+./build/mac-rel/bin/aeroforge-track --config configs/track_norfair.yml
+```
+
+### Features
+
+- **Multi-object tracking**: Track multiple objects simultaneously with persistent IDs
+- **Robust tracking**: Survives brief occlusions and cluttered scenes
+- **Configurable**: Tune distance functions, thresholds, and tracking parameters
+- **Graceful fallback**: Automatically falls back to pass-through mode if service unavailable
+- **Auto-reconnection**: Reconnects to service with exponential backoff
+
+### Configuration
+
+The Norfair tracker can be configured in your YAML config:
+
+```yaml
+- name: tracker
+  type: norfair
+  params:
+    socket_path: "/tmp/aeroforge_norfair.sock"
+    timeout_ms: 500
+    auto_reconnect: true
+```
+
+See `services/norfair/README.md` for detailed configuration options and tuning guide.
+
+---
+
 ## Configuration
 
 AeroForge uses YAML for runtime configuration. Example (`configs/track_colorball.yml`):
@@ -143,12 +189,12 @@ safety:
 ## Architecture
 
 ```
-AeroForge Core
-  ├─ Capture (webcam/RTSP/DJI)
-  │   └─ SPSC FrameRingBuffer
-  ├─ Pipeline (config-driven)
-  │   ├─ Detector (ColorBall / ArUco / YOLO*)
-  │   ├─ Tracker (Kalman / SORT*)
+AeroForge Core (C++)                    Python Services
+  ├─ Capture (webcam/RTSP/DJI)             ├─ Norfair Tracker
+  │   └─ SPSC FrameRingBuffer              │   (Unix Socket + MessagePack)
+  ├─ Pipeline (config-driven)              │
+  │   ├─ Detector (Interactive / ColorBall / ArUco)
+  │   ├─ Tracker (Kalman / Norfair*)       ◄──┘
   │   ├─ Estimator (size-based / ground-plane)
   │   ├─ Controller (PID velocity)
   │   └─ Sinks (HUD, recorder, telemetry)
@@ -156,10 +202,8 @@ AeroForge Core
   ├─ Safety Manager (hold-to-enable, e-stop, geofence)
   └─ UI/HUD (ImGui)
 
-*optional/future
+*Norfair requires Python service running
 ```
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ---
 
@@ -226,6 +270,8 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 - [OpenCV](https://opencv.org/) for vision primitives
 - [Eigen](https://eigen.tuxfamily.org/) for linear algebra
 - [ImGui](https://github.com/ocornut/imgui) for HUD rendering
+- [Norfair](https://github.com/tryolabs/norfair) for multi-object tracking
+- [MessagePack](https://msgpack.org/) for efficient IPC serialization
 - [Catch2](https://github.com/catchorg/Catch2) for testing
 - [spdlog](https://github.com/gabime/spdlog) for logging
 - [yaml-cpp](https://github.com/jbeder/yaml-cpp) for config parsing
