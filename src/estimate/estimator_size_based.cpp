@@ -1,6 +1,7 @@
 #include "aeroforge/modules.hpp"
-#include <spdlog/spdlog.h>
+
 #include <cmath>
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace af
@@ -23,8 +24,8 @@ public:
   SizeBasedEstimator(double object_diameter_m, const CameraIntrinsics& k)
       : object_diameter_m_(object_diameter_m), k_(k)
   {
-    spdlog::info("[SizeBasedEstimator] object_diameter={:.2f}m, fx={:.1f}, fy={:.1f}",
-                 object_diameter_m, k.fx, k.fy);
+    spdlog::info("[SizeBasedEstimator] object_diameter={:.2f}m, fx={:.1f}, fy={:.1f}", object_diameter_m,
+                 k.fx, k.fy);
   }
 
   void process(Frame& frame) override { (void)frame; }
@@ -73,11 +74,10 @@ private:
 
 void validate_intrinsics(const CameraIntrinsics& k, const char* who)
 {
-  if (!std::isfinite(k.fx) || !std::isfinite(k.fy) || !std::isfinite(k.cx) ||
-      !std::isfinite(k.cy) || k.fx <= 0.0 || k.fy <= 0.0)
+  if (!std::isfinite(k.fx) || !std::isfinite(k.fy) || !std::isfinite(k.cx) || !std::isfinite(k.cy) ||
+      k.fx <= 0.0 || k.fy <= 0.0)
   {
-    throw std::invalid_argument(std::string(who) +
-                                ": camera intrinsics fx and fy must be > 0 and finite");
+    throw std::invalid_argument(std::string(who) + ": camera intrinsics fx and fy must be > 0 and finite");
   }
 }
 

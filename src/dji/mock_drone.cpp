@@ -1,7 +1,8 @@
 #include "aeroforge/dji_iface.hpp"
-#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace af
 {

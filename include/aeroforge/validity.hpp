@@ -22,16 +22,16 @@ constexpr const char* to_string(Validity v)
 {
   switch (v)
   {
-  case Validity::Unavailable:
-    return "unavailable";
-  case Validity::Invalid:
-    return "invalid";
-  case Validity::Stale:
-    return "stale";
-  case Validity::Predicted:
-    return "predicted";
-  case Validity::Fresh:
-    return "fresh";
+    case Validity::Unavailable:
+      return "unavailable";
+    case Validity::Invalid:
+      return "invalid";
+    case Validity::Stale:
+      return "stale";
+    case Validity::Predicted:
+      return "predicted";
+    case Validity::Fresh:
+      return "fresh";
   }
   return "unknown";
 }

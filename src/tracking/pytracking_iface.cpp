@@ -1,23 +1,23 @@
 #include "aeroforge/pytracking_iface.hpp"
-#include <spdlog/spdlog.h>
-#include <opencv2/opencv.hpp>
-#include <nlohmann/json.hpp>
 
-#include <cstdio>
-#include <stdexcept>
-#include <sstream>
-#include <vector>
-#include <cstring>
-#include <thread>
 #include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <nlohmann/json.hpp>
+#include <opencv2/opencv.hpp>
+#include <spdlog/spdlog.h>
+#include <sstream>
+#include <stdexcept>
+#include <thread>
+#include <vector>
 
 #ifdef _WIN32
-#include <windows.h>
-#include <io.h>
 #include <fcntl.h>
+#include <io.h>
+#include <windows.h>
 #else
-#include <unistd.h>
 #include <signal.h>
+#include <unistd.h>
 #define POPEN popen
 #define PCLOSE pclose
 #endif
@@ -34,10 +34,9 @@ namespace af
 namespace base64
 {
 
-static const std::string base64_chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789+/";
+static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                        "abcdefghijklmnopqrstuvwxyz"
+                                        "0123456789+/";
 
 std::string encode(const std::vector<uchar>& data)
 {
@@ -120,9 +119,7 @@ struct PyTrackingDetector::Impl
 #endif
 
   Impl(std::string wrapper, std::string tracker, std::string python)
-      : wrapper_path(std::move(wrapper)),
-        tracker_name(std::move(tracker)),
-        python_cmd(std::move(python))
+      : wrapper_path(std::move(wrapper)), tracker_name(std::move(tracker)), python_cmd(std::move(python))
   {
   }
 
@@ -144,8 +141,7 @@ struct PyTrackingDetector::Impl
     }
 #endif
 
-    spdlog::info("[PyTrackingDetector] Starting Python subprocess: {} {}",
-                 python_cmd, wrapper_path);
+    spdlog::info("[PyTrackingDetector] Starting Python subprocess: {} {}", python_cmd, wrapper_path);
 
 #ifdef _WIN32
     // Windows: Use CreateProcess with pipes for stdin/stdout
@@ -230,17 +226,16 @@ struct PyTrackingDetector::Impl
     spdlog::debug("[PyTrackingDetector] Command line: {}", cmd_line);
 
     // Create child process
-    BOOL success = CreateProcessA(
-        nullptr,                          // Application name
-        const_cast<char*>(cmd_line.c_str()), // Command line
-        nullptr,                          // Process security attributes
-        nullptr,                          // Thread security attributes
-        TRUE,                             // Inherit handles
-        CREATE_NO_WINDOW,                 // Creation flags (no console window)
-        nullptr,                          // Environment
-        nullptr,                          // Current directory
-        &startup_info,                    // Startup info
-        &proc_info);                      // Process info
+    BOOL success = CreateProcessA(nullptr,                             // Application name
+                                  const_cast<char*>(cmd_line.c_str()), // Command line
+                                  nullptr,                             // Process security attributes
+                                  nullptr,                             // Thread security attributes
+                                  TRUE,                                // Inherit handles
+                                  CREATE_NO_WINDOW,                    // Creation flags (no console window)
+                                  nullptr,                             // Environment
+                                  nullptr,                             // Current directory
+                                  &startup_info,                       // Startup info
+                                  &proc_info);                         // Process info
 
     if (!success)
     {
@@ -267,32 +262,35 @@ struct PyTrackingDetector::Impl
     // Start a background thread to drain stderr so child doesn't block
     try
     {
-      stderr_drain_thread = std::thread([this]() {
-        std::string line;
-        char ch;
-        DWORD bytes_read;
-        while (true)
-        {
-          BOOL ok = ReadFile(h_child_stderr_rd, &ch, 1, &bytes_read, nullptr);
-          if (!ok || bytes_read == 0) break;
-          if (ch == '\n')
+      stderr_drain_thread = std::thread(
+          [this]()
           {
+            std::string line;
+            char ch;
+            DWORD bytes_read;
+            while (true)
+            {
+              BOOL ok = ReadFile(h_child_stderr_rd, &ch, 1, &bytes_read, nullptr);
+              if (!ok || bytes_read == 0)
+                break;
+              if (ch == '\n')
+              {
+                if (!line.empty())
+                {
+                  spdlog::info("[PyTrackingDetector][stderr] {}", line);
+                  line.clear();
+                }
+              }
+              else if (ch != '\r')
+              {
+                line += ch;
+              }
+            }
             if (!line.empty())
             {
               spdlog::info("[PyTrackingDetector][stderr] {}", line);
-              line.clear();
             }
-          }
-          else if (ch != '\r')
-          {
-            line += ch;
-          }
-        }
-        if (!line.empty())
-        {
-          spdlog::info("[PyTrackingDetector][stderr] {}", line);
-        }
-      });
+          });
     }
     catch (...)
     {
@@ -344,9 +342,12 @@ struct PyTrackingDetector::Impl
       }
 
       // Close pipe handles
-      if (h_child_stdin_wr) CloseHandle(h_child_stdin_wr);
-      if (h_child_stdout_rd) CloseHandle(h_child_stdout_rd);
-      if (h_child_stderr_rd) CloseHandle(h_child_stderr_rd);
+      if (h_child_stdin_wr)
+        CloseHandle(h_child_stdin_wr);
+      if (h_child_stdout_rd)
+        CloseHandle(h_child_stdout_rd);
+      if (h_child_stderr_rd)
+        CloseHandle(h_child_stderr_rd);
 
       // Wait for process to exit (with timeout)
       WaitForSingleObject(h_process, 2000);
@@ -366,7 +367,13 @@ struct PyTrackingDetector::Impl
       // Join stderr drain thread if running
       if (stderr_drain_thread.joinable())
       {
-        try { stderr_drain_thread.join(); } catch (...) {}
+        try
+        {
+          stderr_drain_thread.join();
+        }
+        catch (...)
+        {
+        }
       }
 
       h_child_stdin_wr = nullptr;
@@ -416,8 +423,8 @@ struct PyTrackingDetector::Impl
 
     std::string msg_str = msg.dump() + "\n";
     DWORD written;
-    BOOL success = WriteFile(h_child_stdin_wr, msg_str.c_str(),
-                             static_cast<DWORD>(msg_str.size()), &written, nullptr);
+    BOOL success =
+        WriteFile(h_child_stdin_wr, msg_str.c_str(), static_cast<DWORD>(msg_str.size()), &written, nullptr);
 
     if (!success || written != msg_str.size())
     {
@@ -449,8 +456,7 @@ struct PyTrackingDetector::Impl
     {
       throw std::runtime_error("Subprocess not running");
     }
-    const auto deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
 
     while (true)
     {
@@ -496,7 +502,7 @@ struct PyTrackingDetector::Impl
           break;
         }
 
-        if (ch != '\r')  // Skip carriage returns
+        if (ch != '\r') // Skip carriage returns
         {
           line += ch;
         }
@@ -606,8 +612,7 @@ struct PyTrackingDetector::Impl
       init_msg["bbox"] = {roi.x, roi.y, roi.width, roi.height};
       init_msg["tracker_name"] = tracker_name;
 
-      spdlog::debug("[PyTrackingDetector] Sending init message (frame size: {} bytes)",
-                    frame_b64.size());
+      spdlog::debug("[PyTrackingDetector] Sending init message (frame size: {} bytes)", frame_b64.size());
 
       // Send message
       send_message(init_msg);
@@ -672,11 +677,8 @@ struct PyTrackingDetector::Impl
 
       // Parse bbox
       auto bbox_arr = response["bbox"];
-      cv::Rect bbox(
-          static_cast<int>(bbox_arr[0]),
-          static_cast<int>(bbox_arr[1]),
-          static_cast<int>(bbox_arr[2]),
-          static_cast<int>(bbox_arr[3]));
+      cv::Rect bbox(static_cast<int>(bbox_arr[0]), static_cast<int>(bbox_arr[1]),
+                    static_cast<int>(bbox_arr[2]), static_cast<int>(bbox_arr[3]));
 
       last_bbox = bbox;
       last_confidence = response.value("confidence", 1.0f);
@@ -739,8 +741,7 @@ struct PyTrackingDetector::Impl
 // PyTrackingDetector Implementation
 // ──────────────────────────────────────────────────────────────────────────
 
-PyTrackingDetector::PyTrackingDetector(const std::string& wrapper_path,
-                                       const std::string& tracker_name,
+PyTrackingDetector::PyTrackingDetector(const std::string& wrapper_path, const std::string& tracker_name,
                                        const std::string& python_cmd)
     : impl_(std::make_unique<Impl>(wrapper_path, tracker_name, python_cmd))
 {
@@ -757,18 +758,30 @@ bool PyTrackingDetector::set_roi(const cv::Rect& roi, const cv::Mat& frame)
   return impl_->init_tracker(roi, frame);
 }
 
-bool PyTrackingDetector::is_tracking() const { return impl_->initialized; }
+bool PyTrackingDetector::is_tracking() const
+{
+  return impl_->initialized;
+}
 
-void PyTrackingDetector::reset() { impl_->reset_tracker(); }
+void PyTrackingDetector::reset()
+{
+  impl_->reset_tracker();
+}
 
-float PyTrackingDetector::get_confidence() const { return impl_->last_confidence; }
+float PyTrackingDetector::get_confidence() const
+{
+  return impl_->last_confidence;
+}
 
 const std::string& PyTrackingDetector::get_tracker_name() const
 {
   return impl_->tracker_name;
 }
 
-void PyTrackingDetector::process(Frame& frame) { (void)frame; }
+void PyTrackingDetector::process(Frame& frame)
+{
+  (void)frame;
+}
 
 std::vector<Detection> PyTrackingDetector::detect(const Frame& frame)
 {
@@ -780,11 +793,14 @@ std::vector<Detection> PyTrackingDetector::detect(const Frame& frame)
   return impl_->track_frame(frame.img);
 }
 
-const char* PyTrackingDetector::name() const { return "PyTrackingDetector"; }
+const char* PyTrackingDetector::name() const
+{
+  return "PyTrackingDetector";
+}
 
 std::unique_ptr<PyTrackingDetector> make_pytracking_detector(const std::string& wrapper_path,
-                                                               const std::string& tracker_name,
-                                                               const std::string& python_cmd)
+                                                             const std::string& tracker_name,
+                                                             const std::string& python_cmd)
 {
   return std::make_unique<PyTrackingDetector>(wrapper_path, tracker_name, python_cmd);
 }

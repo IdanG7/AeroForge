@@ -2,6 +2,7 @@
 
 #include "aeroforge/core.hpp"
 #include "aeroforge/plugin.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,9 +37,8 @@ public:
    * @param tracker_name Name of tracker ("dimp", "prdimp", "tomp", "keep_track", etc.)
    * @param python_cmd Python command to use (default: "python3")
    */
-  explicit PyTrackingDetector(const std::string& wrapper_path,
-                               const std::string& tracker_name = "dimp",
-                               const std::string& python_cmd = "python3");
+  explicit PyTrackingDetector(const std::string& wrapper_path, const std::string& tracker_name = "dimp",
+                              const std::string& python_cmd = "python3");
 
   /**
    * Destructor - terminates Python subprocess
@@ -100,9 +100,8 @@ private:
  * - tracker_name: Name of tracker (default: "dimp")
  * - python_cmd: Python command (default: "python3")
  */
-std::unique_ptr<PyTrackingDetector> make_pytracking_detector(
-    const std::string& wrapper_path,
-    const std::string& tracker_name = "dimp",
-    const std::string& python_cmd = "python3");
+std::unique_ptr<PyTrackingDetector> make_pytracking_detector(const std::string& wrapper_path,
+                                                             const std::string& tracker_name = "dimp",
+                                                             const std::string& python_cmd = "python3");
 
 } // namespace af

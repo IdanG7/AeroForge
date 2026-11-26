@@ -4,15 +4,16 @@
 // Moved out of apps/track/aeroforge-track.cpp so that it can be linked and tested.
 
 #include "aeroforge/modules.hpp"
-#include <opencv2/features2d.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/video/tracking.hpp>
-#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <opencv2/features2d.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/video/tracking.hpp>
+#include <spdlog/spdlog.h>
 
 namespace af
 {
@@ -29,7 +30,8 @@ public:
     if (log_file_.is_open())
     {
       // Write CSV header
-      log_file_ << "timestamp,obj_id,event,quality,template_score,feature_score,features,lost_frames,processing_ms,reason\n";
+      log_file_ << "timestamp,obj_id,event,quality,template_score,feature_score,features,lost_frames,"
+                   "processing_ms,reason\n";
       log_file_.flush();
       spdlog::info("[PerformanceLogger] Logging to: {}", filename);
     }
@@ -50,36 +52,39 @@ public:
 
   void log_track_start(int obj_id, double timestamp)
   {
-    if (!log_file_.is_open()) return;
-    log_file_ << std::fixed << std::setprecision(3)
-              << timestamp << "," << obj_id << ",START,1.0,0.0,0.0,0,0,0.0,track_initialized\n";
+    if (!log_file_.is_open())
+      return;
+    log_file_ << std::fixed << std::setprecision(3) << timestamp << "," << obj_id
+              << ",START,1.0,0.0,0.0,0,0,0.0,track_initialized\n";
     log_file_.flush();
   }
 
-  void log_frame(int obj_id, double timestamp, float quality, float template_score,
-                 float feature_score, int features, int lost_frames, double processing_ms)
+  void log_frame(int obj_id, double timestamp, float quality, float template_score, float feature_score,
+                 int features, int lost_frames, double processing_ms)
   {
-    if (!log_file_.is_open()) return;
-    log_file_ << std::fixed << std::setprecision(3)
-              << timestamp << "," << obj_id << ",TRACK," << quality << ","
-              << template_score << "," << feature_score << "," << features << ","
-              << lost_frames << "," << processing_ms << ",tracking\n";
+    if (!log_file_.is_open())
+      return;
+    log_file_ << std::fixed << std::setprecision(3) << timestamp << "," << obj_id << ",TRACK," << quality
+              << "," << template_score << "," << feature_score << "," << features << "," << lost_frames << ","
+              << processing_ms << ",tracking\n";
   }
 
   void log_loss(int obj_id, double timestamp, float quality, const std::string& reason)
   {
-    if (!log_file_.is_open()) return;
-    log_file_ << std::fixed << std::setprecision(3)
-              << timestamp << "," << obj_id << ",LOST," << quality << ",0.0,0.0,0,0,0.0," << reason << "\n";
+    if (!log_file_.is_open())
+      return;
+    log_file_ << std::fixed << std::setprecision(3) << timestamp << "," << obj_id << ",LOST," << quality
+              << ",0.0,0.0,0,0,0.0," << reason << "\n";
     log_file_.flush();
     spdlog::warn("[PerformanceLogger] Object {} lost - {}", obj_id, reason);
   }
 
   void log_occlusion(int obj_id, double timestamp, int lost_frames)
   {
-    if (!log_file_.is_open()) return;
-    log_file_ << std::fixed << std::setprecision(3)
-              << timestamp << "," << obj_id << ",OCCLUDED,0.3,0.0,0.0,0," << lost_frames << ",0.0,occluded\n";
+    if (!log_file_.is_open())
+      return;
+    log_file_ << std::fixed << std::setprecision(3) << timestamp << "," << obj_id
+              << ",OCCLUDED,0.3,0.0,0.0,0," << lost_frames << ",0.0,occluded\n";
   }
 
 private:
@@ -146,17 +151,14 @@ public:
     {
       // State: [x, y, vx, vy, ax, ay]
       // Measurement: [x, y]
-      kalman.transitionMatrix = (cv::Mat_<float>(6, 6) <<
-        1, 0, 1, 0, 0.5, 0,      // x = x + vx*dt + 0.5*ax*dt^2
-        0, 1, 0, 1, 0, 0.5,      // y = y + vy*dt + 0.5*ay*dt^2
-        0, 0, 1, 0, 1, 0,        // vx = vx + ax*dt
-        0, 0, 0, 1, 0, 1,        // vy = vy + ay*dt
-        0, 0, 0, 0, 0.95, 0,     // ax with damping
-        0, 0, 0, 0, 0, 0.95);    // ay with damping
+      kalman.transitionMatrix = (cv::Mat_<float>(6, 6) << 1, 0, 1, 0, 0.5, 0, // x = x + vx*dt + 0.5*ax*dt^2
+                                 0, 1, 0, 1, 0, 0.5,                          // y = y + vy*dt + 0.5*ay*dt^2
+                                 0, 0, 1, 0, 1, 0,                            // vx = vx + ax*dt
+                                 0, 0, 0, 1, 0, 1,                            // vy = vy + ay*dt
+                                 0, 0, 0, 0, 0.95, 0,                         // ax with damping
+                                 0, 0, 0, 0, 0, 0.95);                        // ay with damping
 
-      kalman.measurementMatrix = (cv::Mat_<float>(2, 6) <<
-        1, 0, 0, 0, 0, 0,
-        0, 1, 0, 0, 0, 0);
+      kalman.measurementMatrix = (cv::Mat_<float>(2, 6) << 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0);
 
       // Process noise covariance
       cv::setIdentity(kalman.processNoiseCov, cv::Scalar::all(0.03));
@@ -176,7 +178,8 @@ public:
 
     cv::Point2f predict_kalman()
     {
-      if (!kalman_initialized) return cv::Point2f(pos_x, pos_y);
+      if (!kalman_initialized)
+        return cv::Point2f(pos_x, pos_y);
 
       cv::Mat prediction = kalman.predict();
       return cv::Point2f(prediction.at<float>(0), prediction.at<float>(1));
@@ -207,11 +210,11 @@ public:
   {
     // Initialize color palette for different objects
     colors_ = {
-      cv::Scalar(0, 255, 255),    // Cyan
-      cv::Scalar(255, 0, 255),    // Magenta
-      cv::Scalar(255, 255, 0),    // Yellow
-      cv::Scalar(0, 255, 0),      // Green
-      cv::Scalar(255, 128, 0)     // Orange
+        cv::Scalar(0, 255, 255), // Cyan
+        cv::Scalar(255, 0, 255), // Magenta
+        cv::Scalar(255, 255, 0), // Yellow
+        cv::Scalar(0, 255, 0),   // Green
+        cv::Scalar(255, 128, 0)  // Orange
     };
     if (!perf_csv_path.empty())
     {
@@ -236,7 +239,8 @@ public:
     }
 
     cv::Rect safe_roi = roi & cv::Rect(0, 0, frame.cols, frame.rows);
-    if (safe_roi.area() < 100) return false;
+    if (safe_roi.area() < 100)
+      return false;
 
     // Find an inactive slot
     int slot = -1;
@@ -296,8 +300,8 @@ public:
     obj.init_kalman(obj.pos_x, obj.pos_y, 0.0f, 0.0f);
 
     active_count_++;
-    spdlog::info("[MultiObjectTracker] Object {} started at ({}, {}) {}x{} - Total: {}/{}",
-                 slot, safe_roi.x, safe_roi.y, safe_roi.width, safe_roi.height, active_count_, MAX_OBJECTS);
+    spdlog::info("[MultiObjectTracker] Object {} started at ({}, {}) {}x{} - Total: {}/{}", slot, safe_roi.x,
+                 safe_roi.y, safe_roi.width, safe_roi.height, active_count_, MAX_OBJECTS);
 
     // Log tracking start
     if (logger_)
@@ -322,7 +326,8 @@ public:
   {
     for (int i = 0; i < MAX_OBJECTS; ++i)
     {
-      if (objects_[i].active) return true;
+      if (objects_[i].active)
+        return true;
     }
     return false;
   }
@@ -356,7 +361,8 @@ public:
     for (int obj_idx = 0; obj_idx < MAX_OBJECTS; ++obj_idx)
     {
       auto& obj = objects_[obj_idx];
-      if (!obj.active) continue;
+      if (!obj.active)
+        continue;
 
       // Start timing for performance measurement
       auto t_start = std::chrono::high_resolution_clock::now();
@@ -375,18 +381,20 @@ public:
         // Large objects (>15000px) use fewer scales to save processing time
         std::vector<float> scales;
         if (obj.template_area > 15000)
-          scales = {0.9f, 1.0f, 1.1f};  // 3 scales for large objects
+          scales = {0.9f, 1.0f, 1.1f}; // 3 scales for large objects
         else if (obj.template_area > 8000)
-          scales = {0.8f, 0.9f, 1.0f, 1.1f, 1.2f};  // 5 scales for medium objects
+          scales = {0.8f, 0.9f, 1.0f, 1.1f, 1.2f}; // 5 scales for medium objects
         else
-          scales = {0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.3f};  // 7 scales for small objects
+          scales = {0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.3f}; // 7 scales for small objects
 
         float best_template_score = 0.0f;
         cv::Point best_loc;
 
         // OPTIMIZATION: Tighter search region (1.5x instead of 2.5x)
-        float search_expansion = 1.5f + std::min(2.0f, std::sqrt(obj.velocity_x * obj.velocity_x +
-                                                                   obj.velocity_y * obj.velocity_y) * 0.05f);
+        float search_expansion =
+            1.5f +
+            std::min(2.0f,
+                     std::sqrt(obj.velocity_x * obj.velocity_x + obj.velocity_y * obj.velocity_y) * 0.05f);
         int search_w = static_cast<int>(obj.bbox.width * search_expansion);
         int search_h = static_cast<int>(obj.bbox.height * search_expansion);
         int search_x = static_cast<int>(predicted_pos.x - search_w / 2);
@@ -491,8 +499,8 @@ public:
                 sum_x += kp.pt.x;
                 sum_y += kp.pt.y;
               }
-              feature_pos = cv::Point2f(feature_roi.x + sum_x / good_matches,
-                                       feature_roi.y + sum_y / good_matches);
+              feature_pos =
+                  cv::Point2f(feature_roi.x + sum_x / good_matches, feature_roi.y + sum_y / good_matches);
               feature_score = std::min(1.0f, good_matches / 50.0f);
             }
           }
@@ -506,28 +514,28 @@ public:
 
       // Weight the tracking methods based on their confidence
       float template_weight = template_score;
-      float feature_weight = feature_score * 0.8f;  // Features slightly less reliable
-      float kalman_weight = 0.3f * (1.0f - obj.lost_frames / 30.0f);  // Decay with lost frames
+      float feature_weight = feature_score * 0.8f;                   // Features slightly less reliable
+      float kalman_weight = 0.3f * (1.0f - obj.lost_frames / 30.0f); // Decay with lost frames
 
       float total_weight = template_weight + feature_weight + kalman_weight;
 
       if (total_weight > 0.5f)
       {
         // Weighted fusion of all tracking sources
-        final_pos.x = (template_pos.x * template_weight +
-                       feature_pos.x * feature_weight +
-                       predicted_pos.x * kalman_weight) / total_weight;
-        final_pos.y = (template_pos.y * template_weight +
-                       feature_pos.y * feature_weight +
-                       predicted_pos.y * kalman_weight) / total_weight;
+        final_pos.x = (template_pos.x * template_weight + feature_pos.x * feature_weight +
+                       predicted_pos.x * kalman_weight) /
+                      total_weight;
+        final_pos.y = (template_pos.y * template_weight + feature_pos.y * feature_weight +
+                       predicted_pos.y * kalman_weight) /
+                      total_weight;
 
         final_bbox = template_bbox;
         final_bbox.x = static_cast<int>(final_pos.x - final_bbox.width / 2.0f);
         final_bbox.y = static_cast<int>(final_pos.y - final_bbox.height / 2.0f);
 
         // Overall quality is combination of all scores
-        overall_quality = (template_score * 0.5f + feature_score * 0.3f +
-                          std::min(1.0f, total_weight / 2.0f) * 0.2f);
+        overall_quality =
+            (template_score * 0.5f + feature_score * 0.3f + std::min(1.0f, total_weight / 2.0f) * 0.2f);
 
         // Update Kalman filter with fused position
         obj.update_kalman(final_pos.x, final_pos.y);
@@ -550,8 +558,8 @@ public:
         // Log successful tracking
         if (logger_)
         {
-          logger_->log_frame(obj.id, frame.timestamp_s, overall_quality, template_score,
-                            feature_score, good_matches, 0, obj.last_processing_ms);
+          logger_->log_frame(obj.id, frame.timestamp_s, overall_quality, template_score, feature_score,
+                             good_matches, 0, obj.last_processing_ms);
         }
 
         // Adaptive template update (only when tracking quality is high)
@@ -567,8 +575,7 @@ public:
             // Occasionally update ORB features too
             if (frame_count_ % 30 == 0)
             {
-              obj.orb_detector->detectAndCompute(new_template, cv::noArray(),
-                                                obj.keypoints, obj.descriptors);
+              obj.orb_detector->detectAndCompute(new_template, cv::noArray(), obj.keypoints, obj.descriptors);
             }
           }
         }
@@ -590,8 +597,9 @@ public:
         // Give up after too many lost frames
         if (obj.lost_frames > 45)
         {
-          std::string loss_reason = template_score < 0.3f ? "low_template_score" :
-                                    (feature_score < 0.2f ? "low_feature_score" : "prolonged_occlusion");
+          std::string loss_reason =
+              template_score < 0.3f ? "low_template_score"
+                                    : (feature_score < 0.2f ? "low_feature_score" : "prolonged_occlusion");
 
           if (logger_)
           {
@@ -605,7 +613,7 @@ public:
         else if (obj.occluded)
         {
           // Log occlusion event
-          if (logger_ && obj.lost_frames == 6)  // Log once when first occluded
+          if (logger_ && obj.lost_frames == 6) // Log once when first occluded
           {
             logger_->log_occlusion(obj.id, frame.timestamp_s, obj.lost_frames);
           }
@@ -618,7 +626,7 @@ public:
           det.id = obj.id;
           det.bbox = obj.bbox;
           det.centroid = predicted_pos;
-          det.score = 0.3f;  // Low confidence during occlusion
+          det.score = 0.3f; // Low confidence during occlusion
           det.validity = Validity::Predicted;
           all_detections.push_back(det);
         }
@@ -632,8 +640,6 @@ public:
   const TrackedObject& get_object(int idx) const { return objects_[idx]; }
 
   const char* name() const override { return "MultiObjectTracker"; }
-
-
 
 private:
   TrackedObject objects_[MAX_OBJECTS];

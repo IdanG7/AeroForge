@@ -1,9 +1,10 @@
 #include "aeroforge/io.hpp"
+
+#include <cmath>
+#include <cstdlib>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 #include <spdlog/spdlog.h>
-#include <cmath>
-#include <cstdlib>
 #include <stdexcept>
 
 namespace af
@@ -34,8 +35,7 @@ void disable_slow_msmf_probe()
 class LiveCapture : public IFrameSource
 {
 public:
-  explicit LiveCapture(const InputConfig& cfg)
-      : cfg_(cfg), mirror_(cfg.mirror.value_or(cfg.type == "webcam"))
+  explicit LiveCapture(const InputConfig& cfg) : cfg_(cfg), mirror_(cfg.mirror.value_or(cfg.type == "webcam"))
   {
   }
 
@@ -71,15 +71,12 @@ public:
 
     spdlog::info("Opened {}: {}x{} @ {:.1f} FPS (requested {}x{} @ {} FPS)", describe(),
                  static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_WIDTH)),
-                 static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_HEIGHT)), fps_, cfg_.width,
-                 cfg_.height, cfg_.fps);
+                 static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_HEIGHT)), fps_, cfg_.width, cfg_.height,
+                 cfg_.fps);
     return true;
   }
 
-  void close() override
-  {
-    cap_.release();
-  }
+  void close() override { cap_.release(); }
 
   bool read(Frame& out) override
   {
@@ -108,8 +105,7 @@ public:
 
   std::string describe() const override
   {
-    return cfg_.type == "webcam" ? "webcam " + std::to_string(cfg_.device)
-                                 : "stream " + cfg_.path;
+    return cfg_.type == "webcam" ? "webcam " + std::to_string(cfg_.device) : "stream " + cfg_.path;
   }
 
 private:
@@ -143,9 +139,7 @@ private:
 class FileCapture : public IFrameSource
 {
 public:
-  explicit FileCapture(const InputConfig& cfg) : cfg_(cfg), mirror_(cfg.mirror.value_or(false))
-  {
-  }
+  explicit FileCapture(const InputConfig& cfg) : cfg_(cfg), mirror_(cfg.mirror.value_or(false)) {}
 
   bool open() override
   {
@@ -158,8 +152,7 @@ public:
       return false;
     }
     const double fps = cap_.get(cv::CAP_PROP_FPS);
-    fps_ = (std::isfinite(fps) && fps > 0.0 && fps < 1000.0) ? fps
-                                                              : static_cast<double>(cfg_.fps);
+    fps_ = (std::isfinite(fps) && fps > 0.0 && fps < 1000.0) ? fps : static_cast<double>(cfg_.fps);
     at_end_ = false;
     size_ = cv::Size(static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_WIDTH)),
                      static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_HEIGHT)));
@@ -169,10 +162,7 @@ public:
     return true;
   }
 
-  void close() override
-  {
-    cap_.release();
-  }
+  void close() override { cap_.release(); }
 
   bool read(Frame& out) override
   {
@@ -242,8 +232,7 @@ std::unique_ptr<IFrameSource> make_frame_source(const InputConfig& input)
   {
     if (input.path.empty())
     {
-      throw std::invalid_argument("pipeline.input.path is required when input.type is '" +
-                                  input.type + "'");
+      throw std::invalid_argument("pipeline.input.path is required when input.type is '" + input.type + "'");
     }
     if (input.type == "file")
     {

@@ -1,6 +1,7 @@
 #include "aeroforge/modules.hpp"
-#include <spdlog/spdlog.h>
+
 #include <cmath>
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace af
@@ -33,8 +34,7 @@ public:
   GroundPlaneEstimator(const CameraIntrinsics& k, double camera_tilt_deg)
       : k_(k), tilt_rad_(camera_tilt_deg * 3.14159265358979323846 / 180.0)
   {
-    spdlog::info("[GroundPlaneEstimator] fx={:.1f}, fy={:.1f}, tilt={:.1f} deg", k.fx, k.fy,
-                 camera_tilt_deg);
+    spdlog::info("[GroundPlaneEstimator] fx={:.1f}, fy={:.1f}, tilt={:.1f} deg", k.fx, k.fy, camera_tilt_deg);
   }
 
   void process(Frame& frame) override { (void)frame; }

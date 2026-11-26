@@ -1,7 +1,8 @@
 #include "aeroforge/config.hpp"
-#include <yaml-cpp/yaml.h>
+
 #include <cmath>
 #include <stdexcept>
+#include <yaml-cpp/yaml.h>
 
 namespace af
 {
@@ -70,7 +71,7 @@ ConfigValue yaml_to_config_value(const YAML::Node& node)
 // Typed read with a message that names the key
 template <typename T>
 T read_key(const YAML::Node& parent, const char* key, const T& fallback, const std::string& origin,
-       const std::string& path)
+           const std::string& path)
 {
   const YAML::Node node = parent[key];
   if (!node.IsDefined() || node.IsNull())
@@ -87,8 +88,7 @@ T read_key(const YAML::Node& parent, const char* key, const T& fallback, const s
   }
 }
 
-ConfigMap read_params(const YAML::Node& params, const std::string& origin,
-                      const std::string& path)
+ConfigMap read_params(const YAML::Node& params, const std::string& origin, const std::string& path)
 {
   ConfigMap out;
   if (!params.IsDefined() || params.IsNull())
@@ -216,10 +216,8 @@ PipelineConfig from_root(const YAML::Node& root, const std::string& origin)
     {
       require(limits.IsMap(), origin, "safety.limits must be a mapping");
       s.max_speed_mps = read_key<double>(limits, "max_speed_mps", 6.0, origin, "safety.limits");
-      s.min_follow_dist_m =
-          read_key<double>(limits, "min_follow_dist_m", 2.0, origin, "safety.limits");
-      s.max_follow_dist_m =
-          read_key<double>(limits, "max_follow_dist_m", 10.0, origin, "safety.limits");
+      s.min_follow_dist_m = read_key<double>(limits, "min_follow_dist_m", 2.0, origin, "safety.limits");
+      s.max_follow_dist_m = read_key<double>(limits, "max_follow_dist_m", 10.0, origin, "safety.limits");
     }
 
     const YAML::Node geo = safety["geofence"];
@@ -238,8 +236,8 @@ PipelineConfig from_root(const YAML::Node& root, const std::string& origin)
   require(std::isfinite(s.min_follow_dist_m) && std::isfinite(s.max_follow_dist_m) &&
               s.min_follow_dist_m >= 0.0 && s.min_follow_dist_m < s.max_follow_dist_m,
           origin, "safety.limits must satisfy 0 <= min_follow_dist_m < max_follow_dist_m");
-  require(std::isfinite(s.min_alt_m) && std::isfinite(s.max_alt_m) && s.min_alt_m < s.max_alt_m,
-          origin, "safety.geofence must satisfy min_alt_m < max_alt_m");
+  require(std::isfinite(s.min_alt_m) && std::isfinite(s.max_alt_m) && s.min_alt_m < s.max_alt_m, origin,
+          "safety.geofence must satisfy min_alt_m < max_alt_m");
   require(std::isfinite(s.max_radius_m) && s.max_radius_m > 0.0, origin,
           "safety.geofence.max_radius_m must be > 0");
   require(std::isfinite(s.stale_timeout_s) && s.stale_timeout_s > 0.0, origin,
@@ -325,14 +323,13 @@ std::optional<std::vector<double>> get_numbers(const ConfigMap& map, const std::
 
   if (out.size() != expected_size)
   {
-    throw std::runtime_error("parameter '" + key + "' must have exactly " +
-                             std::to_string(expected_size) + " values");
+    throw std::runtime_error("parameter '" + key + "' must have exactly " + std::to_string(expected_size) +
+                             " values");
   }
   return out;
 }
 
-Eigen::Vector3d get_vec3(const ConfigMap& map, const std::string& key,
-                         const Eigen::Vector3d& default_val)
+Eigen::Vector3d get_vec3(const ConfigMap& map, const std::string& key, const Eigen::Vector3d& default_val)
 {
   const auto values = get_numbers(map, key, 3);
   if (!values)

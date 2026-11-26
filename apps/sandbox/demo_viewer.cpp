@@ -4,9 +4,9 @@
 #include "aeroforge/ui.hpp"
 #endif
 
+#include <chrono>
 #include <opencv2/videoio.hpp>
 #include <spdlog/spdlog.h>
-#include <chrono>
 #include <thread>
 
 int main(int argc, char** argv)
@@ -32,10 +32,8 @@ int main(int argc, char** argv)
   cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
   cap.set(cv::CAP_PROP_FPS, 30);
 
-  spdlog::info("Webcam opened: {}x{} @ {} FPS",
-               static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH)),
-               static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT)),
-               cap.get(cv::CAP_PROP_FPS));
+  spdlog::info("Webcam opened: {}x{} @ {} FPS", static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH)),
+               static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT)), cap.get(cv::CAP_PROP_FPS));
 
 #ifdef AEROFORGE_WITH_IMGUI
   // Initialize HUD

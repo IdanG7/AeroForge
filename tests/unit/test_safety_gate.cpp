@@ -1,6 +1,7 @@
+#include "aeroforge/safety.hpp"
+
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "aeroforge/safety.hpp"
 #include <limits>
 #include <string>
 
@@ -226,7 +227,6 @@ TEST_CASE("SafetyGate command evaluation", "[safety]")
   {
     REQUIRE_FALSE(gate.evaluate(std::nullopt, target, tel, sim_caps(), now).cmd.has_value());
     const double nan = std::numeric_limits<double>::quiet_NaN();
-    REQUIRE_FALSE(
-        gate.evaluate(Eigen::Vector3d(nan, 0, 0), target, tel, sim_caps(), now).cmd.has_value());
+    REQUIRE_FALSE(gate.evaluate(Eigen::Vector3d(nan, 0, 0), target, tel, sim_caps(), now).cmd.has_value());
   }
 }

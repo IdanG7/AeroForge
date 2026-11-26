@@ -2,10 +2,10 @@
 
 #ifdef AEROFORGE_WITH_IMGUI
 
+#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <GLFW/glfw3.h>
 #include <opencv2/imgproc.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -166,12 +166,10 @@ void HUD::render_frame(const Frame& frame)
 
   // Upload texture
   glBindTexture(GL_TEXTURE_2D, impl_->texture_id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rgb.cols, rgb.rows, 0, GL_RGB, GL_UNSIGNED_BYTE,
-               rgb.data);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rgb.cols, rgb.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb.data);
 
   // Display as ImGui image
-  ImGui::Begin("Camera Feed", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+  ImGui::Begin("Camera Feed", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
   ImVec2 size(static_cast<float>(rgb.cols), static_cast<float>(rgb.rows));
   ImGui::Image(static_cast<ImTextureID>(static_cast<intptr_t>(impl_->texture_id)), size);
   ImGui::End();
@@ -192,8 +190,8 @@ void HUD::render_detections(const std::vector<Detection>& detections)
   for (size_t i = 0; i < detections.size(); ++i)
   {
     const auto& det = detections[i];
-    ImGui::Text("[%zu] ID=%d, centroid=(%.1f, %.1f), score=%.2f", i, det.id, det.centroid.x,
-                det.centroid.y, det.score);
+    ImGui::Text("[%zu] ID=%d, centroid=(%.1f, %.1f), score=%.2f", i, det.id, det.centroid.x, det.centroid.y,
+                det.score);
   }
 
   ImGui::End();
@@ -208,9 +206,8 @@ void HUD::render_fps(double fps)
 
   ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
   ImGui::Begin("FPS", nullptr,
-               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoSavedSettings);
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                   ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
   ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "FPS: %.1f", fps);
   ImGui::End();
 }
@@ -226,8 +223,7 @@ void HUD::render_telemetry(const Telemetry& tel)
   ImGui::Text("Altitude: %.2f m", tel.altitude_m);
   ImGui::Text("Speed: %.2f m/s", tel.speed_mps);
   ImGui::Text("Yaw: %.1f deg", tel.yaw_deg);
-  ImGui::Text("Position: (%.2f, %.2f, %.2f)", tel.position_m.x(), tel.position_m.y(),
-              tel.position_m.z());
+  ImGui::Text("Position: (%.2f, %.2f, %.2f)", tel.position_m.x(), tel.position_m.y(), tel.position_m.z());
   ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", tel.velocity_mps.x(), tel.velocity_mps.y(),
               tel.velocity_mps.z());
   ImGui::Text("GPS: %s, Sats: %d", tel.gps_valid ? "Valid" : "Invalid", tel.satellite_count);
@@ -253,9 +249,8 @@ void HUD::render_safety_status(bool enabled, bool geofence_ok)
 {
   ImGui::SetNextWindowPos(ImVec2(10, 50), ImGuiCond_Always);
   ImGui::Begin("Safety", nullptr,
-               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoSavedSettings);
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                   ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
 
   if (enabled)
   {

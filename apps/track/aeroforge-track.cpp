@@ -16,21 +16,21 @@
 
 #ifdef AEROFORGE_WITH_IMGUI
 #include "aeroforge/ui.hpp"
+
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #endif
-
-#include <opencv2/imgproc.hpp>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <optional>
 #include <fstream>
+#include <opencv2/imgproc.hpp>
+#include <optional>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <thread>
 #include <vector>
@@ -54,18 +54,17 @@ struct Options
 
 void print_usage(const char* prog)
 {
-  std::printf(
-      "AeroForge-Track %s\n"
-      "Usage: %s --config <file.yml> [options]\n"
-      "\n"
-      "  --config <path>     pipeline configuration (required)\n"
-      "  --input <video>     replay this video file instead of pipeline.input\n"
-      "  --headless          run without a window and print a JSON report\n"
-      "  --roi x,y,w,h       select this region as the target on the first frame\n"
-      "  --max-frames <n>    stop after n frames\n"
-      "  --report <path>     headless: also write the JSON report to this file\n"
-      "  --help              show this text\n",
-      AEROFORGE_VERSION, prog);
+  std::printf("AeroForge-Track %s\n"
+              "Usage: %s --config <file.yml> [options]\n"
+              "\n"
+              "  --config <path>     pipeline configuration (required)\n"
+              "  --input <video>     replay this video file instead of pipeline.input\n"
+              "  --headless          run without a window and print a JSON report\n"
+              "  --roi x,y,w,h       select this region as the target on the first frame\n"
+              "  --max-frames <n>    stop after n frames\n"
+              "  --report <path>     headless: also write the JSON report to this file\n"
+              "  --help              show this text\n",
+              AEROFORGE_VERSION, prog);
 }
 
 std::optional<cv::Rect> parse_roi(const std::string& text)
@@ -128,25 +127,29 @@ bool parse_args(int argc, char** argv, Options& opt, bool& show_help)
     else if (arg == "--config")
     {
       const char* v = value("--config");
-      if (!v) return false;
+      if (!v)
+        return false;
       opt.config_path = v;
     }
     else if (arg == "--input")
     {
       const char* v = value("--input");
-      if (!v) return false;
+      if (!v)
+        return false;
       opt.input_override = v;
     }
     else if (arg == "--report")
     {
       const char* v = value("--report");
-      if (!v) return false;
+      if (!v)
+        return false;
       opt.report_path = v;
     }
     else if (arg == "--max-frames")
     {
       const char* v = value("--max-frames");
-      if (!v) return false;
+      if (!v)
+        return false;
       char* end = nullptr;
       const long long n = std::strtoll(v, &end, 10);
       if (end == v || *end != '\0' || n <= 0)
@@ -159,7 +162,8 @@ bool parse_args(int argc, char** argv, Options& opt, bool& show_help)
     else if (arg == "--roi")
     {
       const char* v = value("--roi");
-      if (!v) return false;
+      if (!v)
+        return false;
       opt.roi = parse_roi(v);
       if (!opt.roi)
       {
@@ -222,9 +226,9 @@ private:
 struct Counters
 {
   uint64_t frames{0};
-  uint64_t frames_with_target{0};    // any tracked detection
-  uint64_t frames_fresh_target{0};   // measured this frame
-  uint64_t frames_predicted{0};      // tracker coasting
+  uint64_t frames_with_target{0};  // any tracked detection
+  uint64_t frames_fresh_target{0}; // measured this frame
+  uint64_t frames_predicted{0};    // tracker coasting
   uint64_t frames_with_pose{0};
   uint64_t commands_sent{0};
 };
@@ -243,9 +247,7 @@ class Engine
 {
 public:
   explicit Engine(const af::PipelineConfig& config)
-      : pipeline_(config),
-        source_(af::make_frame_source(config.input)),
-        drone_(af::make_mock_drone()),
+      : pipeline_(config), source_(af::make_frame_source(config.input)), drone_(af::make_mock_drone()),
         gate_(config.safety)
   {
   }
@@ -268,13 +270,11 @@ public:
   }
 
   // Reads and processes one frame. Returns false when no frame was available.
-  bool tick(Tick& t, bool enable_key_down, bool estop_key_down,
-            const std::optional<cv::Rect>& select_roi)
+  bool tick(Tick& t, bool enable_key_down, bool estop_key_down, const std::optional<cv::Rect>& select_roi)
   {
     const af::SafetyGate::State before = gate_.state();
     gate_.update(enable_key_down, estop_key_down);
-    if (gate_.state() != af::SafetyGate::State::Enabled &&
-        before == af::SafetyGate::State::Enabled)
+    if (gate_.state() != af::SafetyGate::State::Enabled && before == af::SafetyGate::State::Enabled)
     {
       drone_->hold(); // control was just withdrawn: brake now, don't wait for the watchdog
     }
@@ -298,16 +298,16 @@ public:
     {
       if (!pipeline_.select_target(*select_roi, t.frame))
       {
-        spdlog::warn("Target selection {}x{} at ({}, {}) was rejected", select_roi->width,
-                     select_roi->height, select_roi->x, select_roi->y);
+        spdlog::warn("Target selection {}x{} at ({}, {}) was rejected", select_roi->width, select_roi->height,
+                     select_roi->x, select_roi->y);
       }
     }
 
     const bool control_enabled = gate_.state() == af::SafetyGate::State::Enabled;
     t.out = pipeline_.step(t.frame, t.telemetry, control_enabled);
 
-    t.gate = gate_.evaluate(t.out.velocity_cmd_body, t.out.pose, t.telemetry,
-                            drone_->capabilities(), source_->now_s());
+    t.gate = gate_.evaluate(t.out.velocity_cmd_body, t.out.pose, t.telemetry, drone_->capabilities(),
+                            source_->now_s());
     t.cmd_ned.reset();
     if (t.gate.cmd)
     {
@@ -390,27 +390,26 @@ std::string build_report(Engine& engine, double wall_s)
 {
   const Counters& c = engine.counters();
   const double fps = wall_s > 0.0 ? static_cast<double>(c.frames) / wall_s : 0.0;
-  return fmt::format(
-      "{{\n"
-      "  \"version\": \"{}\",\n"
-      "  \"source\": \"{}\",\n"
-      "  \"detector\": \"{}\",\n"
-      "  \"frames\": {},\n"
-      "  \"frames_with_target\": {},\n"
-      "  \"frames_fresh_target\": {},\n"
-      "  \"frames_predicted\": {},\n"
-      "  \"frames_with_pose\": {},\n"
-      "  \"commands_sent_to_simulator\": {},\n"
-      "  \"failed_reads\": {},\n"
-      "  \"wall_time_s\": {:.3f},\n"
-      "  \"throughput_fps\": {:.2f},\n"
-      "  \"detect_ms\": {},\n"
-      "  \"pipeline_ms\": {}\n"
-      "}}",
-      AEROFORGE_VERSION, json_escape(engine.source().describe()),
-      engine.pipeline().detector_name(), c.frames, c.frames_with_target, c.frames_fresh_target,
-      c.frames_predicted, c.frames_with_pose, c.commands_sent, engine.source().failed_reads(),
-      wall_s, fps, engine.detect_ms().json(), engine.total_ms().json());
+  return fmt::format("{{\n"
+                     "  \"version\": \"{}\",\n"
+                     "  \"source\": \"{}\",\n"
+                     "  \"detector\": \"{}\",\n"
+                     "  \"frames\": {},\n"
+                     "  \"frames_with_target\": {},\n"
+                     "  \"frames_fresh_target\": {},\n"
+                     "  \"frames_predicted\": {},\n"
+                     "  \"frames_with_pose\": {},\n"
+                     "  \"commands_sent_to_simulator\": {},\n"
+                     "  \"failed_reads\": {},\n"
+                     "  \"wall_time_s\": {:.3f},\n"
+                     "  \"throughput_fps\": {:.2f},\n"
+                     "  \"detect_ms\": {},\n"
+                     "  \"pipeline_ms\": {}\n"
+                     "}}",
+                     AEROFORGE_VERSION, json_escape(engine.source().describe()),
+                     engine.pipeline().detector_name(), c.frames, c.frames_with_target, c.frames_fresh_target,
+                     c.frames_predicted, c.frames_with_pose, c.commands_sent, engine.source().failed_reads(),
+                     wall_s, fps, engine.detect_ms().json(), engine.total_ms().json());
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -494,8 +493,7 @@ cv::Scalar color_for(af::Validity v)
   return v == af::Validity::Fresh ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 165, 255);
 }
 
-void draw_overlays(cv::Mat& img, const std::vector<af::Detection>& tracked,
-                   const MouseSelection& mouse)
+void draw_overlays(cv::Mat& img, const std::vector<af::Detection>& tracked, const MouseSelection& mouse)
 {
   for (const auto& det : tracked)
   {
@@ -557,9 +555,9 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
   double fps_window_start = af::now_seconds();
   const double wall_start = af::now_seconds();
 
-  Tick t;                 // last successfully processed frame (kept for display)
+  Tick t; // last successfully processed frame (kept for display)
   bool have_tick = false;
-  bool finished = false;  // recorded source reached its end
+  bool finished = false; // recorded source reached its end
 
   while (!hud.should_close())
   {
@@ -592,8 +590,7 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
       }
 
       Tick next;
-      if (engine.tick(next, hud.is_key_down(GLFW_KEY_F), hud.is_key_down(GLFW_KEY_SPACE),
-                      pending_roi))
+      if (engine.tick(next, hud.is_key_down(GLFW_KEY_F), hud.is_key_down(GLFW_KEY_SPACE), pending_roi))
       {
         pending_roi.reset();
         t = std::move(next);
@@ -705,14 +702,11 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
     ImGui::Text("Source: %s", engine.source().describe().c_str());
     if (have_tick)
     {
-      ImGui::Text("Frame %llu, age %.1f ms", static_cast<unsigned long long>(t.frame.seq),
-                  t.frame_age_ms);
+      ImGui::Text("Frame %llu, age %.1f ms", static_cast<unsigned long long>(t.frame.seq), t.frame_age_ms);
       ImGui::Text("Detect %.2f  Track %.2f ms", t.out.timings.detect_ms, t.out.timings.track_ms);
-      ImGui::Text("Estimate %.2f  Control %.2f ms", t.out.timings.estimate_ms,
-                  t.out.timings.control_ms);
+      ImGui::Text("Estimate %.2f  Control %.2f ms", t.out.timings.estimate_ms, t.out.timings.control_ms);
     }
-    ImGui::Text("Failed reads: %llu",
-                static_cast<unsigned long long>(engine.source().failed_reads()));
+    ImGui::Text("Failed reads: %llu", static_cast<unsigned long long>(engine.source().failed_reads()));
     ImGui::End();
 
     // ── Safety ──
@@ -721,9 +715,8 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
     ImGui::SetNextWindowSize(ImVec2(side_w, 110.0f), ImGuiCond_Always);
     ImGui::Begin("Safety", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "SIMULATION ONLY - no aircraft");
-    const ImVec4 state_color = state == af::SafetyGate::State::Enabled
-                                   ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f)
-                                   : ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+    const ImVec4 state_color = state == af::SafetyGate::State::Enabled ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f)
+                                                                       : ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
     ImGui::TextColored(state_color, "CONTROL: %s", af::to_string(state));
     ImGui::TextUnformatted(engine.gate().hold_to_enable() ? "Hold F to enable, SPACE = e-stop"
                                                           : "Press F to toggle, SPACE = e-stop");
@@ -736,8 +729,7 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
     // ── Telemetry ──
     ImGui::SetNextWindowPos(ImVec2(right_x, 290.0f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(side_w, 230.0f), ImGuiCond_Always);
-    ImGui::Begin("Telemetry (simulated)", nullptr,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Telemetry (simulated)", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     if (have_tick)
     {
       const af::Telemetry& tel = t.telemetry;
@@ -748,8 +740,8 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
       ImGui::Separator();
       ImGui::Text("Position NED: %6.2f %6.2f %6.2f m", tel.position_m.x(), tel.position_m.y(),
                   tel.position_m.z());
-      ImGui::Text("Velocity NED: %6.2f %6.2f %6.2f m/s", tel.velocity_mps.x(),
-                  tel.velocity_mps.y(), tel.velocity_mps.z());
+      ImGui::Text("Velocity NED: %6.2f %6.2f %6.2f m/s", tel.velocity_mps.x(), tel.velocity_mps.y(),
+                  tel.velocity_mps.z());
       ImGui::Separator();
       ImGui::Text("Geofence: %s", engine.gate().geofence_ok(tel) ? "inside" : "OUTSIDE");
     }
@@ -758,8 +750,7 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
     // ── Tracking pipeline ──
     ImGui::SetNextWindowPos(ImVec2(right_x, 530.0f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(side_w, 260.0f), ImGuiCond_Always);
-    ImGui::Begin("Tracking Pipeline", nullptr,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Tracking Pipeline", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     if (have_tick)
     {
       ImGui::Text("Detections: %zu  Tracked: %zu", t.out.detections.size(), t.out.tracked.size());
@@ -777,8 +768,8 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
       if (t.out.pose)
       {
         const af::Pose3D& pose = *t.out.pose;
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Target (camera frame, %s):",
-                           af::to_string(pose.validity));
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                           "Target (camera frame, %s):", af::to_string(pose.validity));
         ImGui::Text("  X: %7.2f m (right)", pose.position_m.x());
         ImGui::Text("  Y: %7.2f m (down)", pose.position_m.y());
         ImGui::Text("  Z: %7.2f m (forward)", pose.position_m.z());
@@ -813,10 +804,22 @@ int run_gui(Engine& engine, const Options& opt, const af::PipelineConfig& config
     ImGui::SetNextWindowSize(ImVec2(img_w + 20.0f, 100.0f), ImGuiCond_Always);
     ImGui::Begin("Controls", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     ImGui::Columns(2, nullptr, false);
-    ImGui::Text("Drag on image"); ImGui::NextColumn(); ImGui::Text("Select target"); ImGui::NextColumn();
-    ImGui::Text("R");             ImGui::NextColumn(); ImGui::Text("Reset tracking"); ImGui::NextColumn();
-    ImGui::Text("F / SPACE");     ImGui::NextColumn(); ImGui::Text("Enable simulated control / e-stop"); ImGui::NextColumn();
-    ImGui::Text("ESC");           ImGui::NextColumn(); ImGui::Text("Exit"); ImGui::NextColumn();
+    ImGui::Text("Drag on image");
+    ImGui::NextColumn();
+    ImGui::Text("Select target");
+    ImGui::NextColumn();
+    ImGui::Text("R");
+    ImGui::NextColumn();
+    ImGui::Text("Reset tracking");
+    ImGui::NextColumn();
+    ImGui::Text("F / SPACE");
+    ImGui::NextColumn();
+    ImGui::Text("Enable simulated control / e-stop");
+    ImGui::NextColumn();
+    ImGui::Text("ESC");
+    ImGui::NextColumn();
+    ImGui::Text("Exit");
+    ImGui::NextColumn();
     ImGui::Columns(1);
     ImGui::End();
 

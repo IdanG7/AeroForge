@@ -1,4 +1,5 @@
 #include "aeroforge/safety.hpp"
+
 #include <cmath>
 
 namespace af
@@ -52,8 +53,7 @@ bool SafetyGate::geofence_ok(const Telemetry& telemetry) const
 }
 
 SafetyGate::Result SafetyGate::evaluate(const std::optional<Eigen::Vector3d>& cmd_body,
-                                        const std::optional<Pose3D>& target,
-                                        const Telemetry& telemetry,
+                                        const std::optional<Pose3D>& target, const Telemetry& telemetry,
                                         const DroneCapabilities& caps, double now_s) const
 {
   auto refuse = [](const char* reason)
@@ -87,8 +87,7 @@ SafetyGate::Result SafetyGate::evaluate(const std::optional<Eigen::Vector3d>& cm
   {
     return refuse("outside geofence");
   }
-  if (!target.has_value() || target->validity != Validity::Fresh ||
-      !target->position_m.allFinite())
+  if (!target.has_value() || target->validity != Validity::Fresh || !target->position_m.allFinite())
   {
     return refuse("no fresh target");
   }

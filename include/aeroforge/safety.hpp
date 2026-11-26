@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include "dji_iface.hpp"
 #include "plugin.hpp"
+
 #include <optional>
 #include <string>
 
@@ -52,9 +53,8 @@ public:
   bool hold_to_enable() const { return config_.require_hold_to_enable; }
 
   // `now_s` must be on the same clock as `target->timestamp_s` (IFrameSource::now_s()).
-  Result evaluate(const std::optional<Eigen::Vector3d>& cmd_body,
-                  const std::optional<Pose3D>& target, const Telemetry& telemetry,
-                  const DroneCapabilities& caps, double now_s) const;
+  Result evaluate(const std::optional<Eigen::Vector3d>& cmd_body, const std::optional<Pose3D>& target,
+                  const Telemetry& telemetry, const DroneCapabilities& caps, double now_s) const;
 
   // Geofence check on its own, for display.
   bool geofence_ok(const Telemetry& telemetry) const;
@@ -69,12 +69,12 @@ constexpr const char* to_string(SafetyGate::State s)
 {
   switch (s)
   {
-  case SafetyGate::State::Disabled:
-    return "DISABLED";
-  case SafetyGate::State::Enabled:
-    return "ENABLED";
-  case SafetyGate::State::EStopped:
-    return "E-STOP";
+    case SafetyGate::State::Disabled:
+      return "DISABLED";
+    case SafetyGate::State::Enabled:
+      return "ENABLED";
+    case SafetyGate::State::EStopped:
+      return "E-STOP";
   }
   return "?";
 }

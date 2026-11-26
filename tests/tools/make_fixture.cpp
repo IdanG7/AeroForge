@@ -2,9 +2,10 @@
 // Usage: af_make_fixture <output.avi> [frames=90]
 
 #include "../support/synthetic.hpp"
-#include <opencv2/videoio.hpp>
+
 #include <cstdio>
 #include <cstdlib>
+#include <opencv2/videoio.hpp>
 
 int main(int argc, char** argv)
 {

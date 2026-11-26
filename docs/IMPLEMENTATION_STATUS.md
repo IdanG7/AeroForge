@@ -139,7 +139,8 @@ States: **Verified** (implemented and exercised by a test or run recorded above)
 | Sanitizer builds | Unverified | Presets exist for Clang/GCC |
 | `ci.yml` | Unverified | Rewritten; has never run (the old one never triggered on `master`) |
 | `build.yml` (build + automatic release) | Unverified | Not touched. Publishes a release when the version changes |
-| clang-format / clang-tidy | Not run | Not installed locally |
+| clang-format | Passed locally | clang-format 18.1.8, `--dry-run --Werror` over `include src apps tests` |
+| clang-tidy | Not run | Not installed locally |
 | README, BUILD_INSTRUCTIONS | Rewritten to match the code | |
 | `PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | Removed | Deleted on `master` by the owner; the merge keeps that |
 

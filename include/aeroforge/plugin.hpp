@@ -2,6 +2,7 @@
 
 #include "core.hpp"
 #include "telemetry.hpp"
+
 #include <Eigen/Core>
 #include <memory>
 #include <optional>
@@ -71,7 +72,7 @@ struct Pose3D
 struct IEstimator : IProcessor
 {
   virtual std::optional<Pose3D> estimate(const Detection& det, const Frame& frame,
-                                          const Telemetry& telemetry) = 0;
+                                         const Telemetry& telemetry) = 0;
 };
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ struct IController : IProcessor
   // Returns a velocity command in the body frame (X forward, Y right, Z down), m/s, or
   // nullopt when no valid command can be computed from `target_rel`.
   virtual std::optional<Eigen::Vector3d> velocity_cmd(const Pose3D& target_rel,
-                                                       const Telemetry& drone_state) = 0;
+                                                      const Telemetry& drone_state) = 0;
   // Clear integrators and history. Call when control is disabled or the target changes.
   virtual void reset() = 0;
 };

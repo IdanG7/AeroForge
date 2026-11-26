@@ -1,8 +1,9 @@
 #include "aeroforge/modules.hpp"
-#include <opencv2/imgproc.hpp>
-#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <cmath>
+#include <opencv2/imgproc.hpp>
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace af
@@ -16,9 +17,8 @@ public:
   ColorBallDetector(const cv::Scalar& hsv_lo, const cv::Scalar& hsv_hi, double min_area_px)
       : hsv_lo_(hsv_lo), hsv_hi_(hsv_hi), min_area_px_(min_area_px)
   {
-    spdlog::info("[ColorBallDetector] HSV range: [{}, {}, {}] - [{}, {}, {}], min_area: {}",
-                 hsv_lo[0], hsv_lo[1], hsv_lo[2], hsv_hi[0], hsv_hi[1], hsv_hi[2],
-                 min_area_px);
+    spdlog::info("[ColorBallDetector] HSV range: [{}, {}, {}] - [{}, {}, {}], min_area: {}", hsv_lo[0],
+                 hsv_lo[1], hsv_lo[2], hsv_hi[0], hsv_hi[1], hsv_hi[2], min_area_px);
   }
 
   void process(Frame& frame) override { (void)frame; }
@@ -48,8 +48,7 @@ public:
       return {};
     }
 
-    auto it = std::max_element(contours.begin(), contours.end(),
-                               [](const auto& a, const auto& b)
+    auto it = std::max_element(contours.begin(), contours.end(), [](const auto& a, const auto& b)
                                { return cv::contourArea(a) < cv::contourArea(b); });
 
     double area = cv::contourArea(*it);
@@ -69,9 +68,8 @@ public:
     Detection det;
     det.id = 0;
     det.centroid = center;
-    det.bbox = cv::Rect(static_cast<int>(center.x - radius),
-                        static_cast<int>(center.y - radius), static_cast<int>(2 * radius),
-                        static_cast<int>(2 * radius));
+    det.bbox = cv::Rect(static_cast<int>(center.x - radius), static_cast<int>(center.y - radius),
+                        static_cast<int>(2 * radius), static_cast<int>(2 * radius));
     // Circularity: 1.0 for a filled disc, lower for irregular blobs
     det.score = static_cast<float>(std::min(1.0, area / (CV_PI * radius * radius)));
 
@@ -88,8 +86,7 @@ private:
 
 } // namespace
 
-std::unique_ptr<IDetector> make_colorball_detector(const cv::Scalar& hsv_lo,
-                                                   const cv::Scalar& hsv_hi,
+std::unique_ptr<IDetector> make_colorball_detector(const cv::Scalar& hsv_lo, const cv::Scalar& hsv_hi,
                                                    double min_area_px)
 {
   for (int i = 0; i < 3; ++i)

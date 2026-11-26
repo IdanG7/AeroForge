@@ -1,14 +1,15 @@
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
 #include "../support/synthetic.hpp"
 #include "aeroforge/config.hpp"
 #include "aeroforge/io.hpp"
 #include "aeroforge/modules.hpp"
 #include "aeroforge/pipeline.hpp"
-#include <opencv2/videoio.hpp>
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
+#include <opencv2/videoio.hpp>
 
 using Catch::Approx;
 
@@ -99,8 +100,7 @@ TEST_CASE("Template tracker follows a moving synthetic target", "[integration][t
     for (int i = 0; i < 80; ++i)
     {
       // Target removed from the scene
-      const auto dets =
-          tracker->detect(make_frame(kFrames + i, synth::tracking_frame(kFrames + i, false)));
+      const auto dets = tracker->detect(make_frame(kFrames + i, synth::tracking_frame(kFrames + i, false)));
       for (const auto& d : dets)
       {
         if (d.validity == af::Validity::Predicted)
@@ -204,8 +204,7 @@ TEST_CASE("Frame source failures are reported, not thrown", "[integration][io][f
   REQUIRE_THROWS_AS(af::make_frame_source(input), std::invalid_argument);
 }
 
-TEST_CASE("Pipeline: detect, track, estimate and control on synthetic frames",
-          "[integration][pipeline]")
+TEST_CASE("Pipeline: detect, track, estimate and control on synthetic frames", "[integration][pipeline]")
 {
   // 0.2 m ball, f = 600 px, drawn with a 30 px radius  =>  range = 600 * 0.2 / 60 = 2.0 m
   const char* yaml = R"(
@@ -234,8 +233,7 @@ pipeline:
   af::PipelineOutput out;
   for (int i = 0; i < 30; ++i)
   {
-    out = pipeline.step(make_frame(i, synth::ball_frame(cv::Point(200 + 2 * i, 240), 30)), tel,
-                        true);
+    out = pipeline.step(make_frame(i, synth::ball_frame(cv::Point(200 + 2 * i, 240), 30)), tel, true);
     REQUIRE(out.detections.size() == 1);
     REQUIRE(out.tracked.size() == 1);
     REQUIRE(out.pose.has_value());
@@ -259,8 +257,8 @@ pipeline:
   SECTION("Losing the target clears the pose and the command")
   {
     out = pipeline.step(
-        make_frame(30, cv::Mat(synth::kHeight, synth::kWidth, CV_8UC3, cv::Scalar(120, 120, 120))),
-        tel, true);
+        make_frame(30, cv::Mat(synth::kHeight, synth::kWidth, CV_8UC3, cv::Scalar(120, 120, 120))), tel,
+        true);
     REQUIRE(out.detections.empty());
     REQUIRE_FALSE(out.pose.has_value());
     REQUIRE_FALSE(out.velocity_cmd_body.has_value());
@@ -274,8 +272,7 @@ pipeline:
   }
 }
 
-TEST_CASE("Pipeline: interactive tracking through a replayed video",
-          "[integration][pipeline][io]")
+TEST_CASE("Pipeline: interactive tracking through a replayed video", "[integration][pipeline][io]")
 {
   const std::string path = temp_video("aeroforge_test_pipeline.avi");
   const int kFrames = 60;
@@ -308,8 +305,7 @@ pipeline:
     if (i > 0 && !out.tracked.empty())
     {
       ++tracked_frames;
-      worst_error_px =
-          std::max(worst_error_px, distance(out.tracked[0].centroid, synth::target_center(i)));
+      worst_error_px = std::max(worst_error_px, distance(out.tracked[0].centroid, synth::target_center(i)));
     }
   }
   INFO("tracked " << tracked_frames << " frames, worst error " << worst_error_px << " px");

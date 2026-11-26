@@ -2,6 +2,7 @@
 
 #include "config.hpp"
 #include "plugin.hpp"
+
 #include <memory>
 #include <optional>
 #include <string>

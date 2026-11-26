@@ -1,7 +1,8 @@
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
 #include "aeroforge/math.hpp"
 #include "aeroforge/modules.hpp"
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <limits>
 
@@ -59,8 +60,7 @@ TEST_CASE("Size-based estimator recovers synthetic ground truth", "[estimate]")
   // 0.2 m object, 3 m away, 0.5 m right and 0.25 m below the optical axis
   const double z = 3.0, x = 0.5, y = 0.25;
   const int size_px = static_cast<int>(std::lround(kCam.fx * 0.20 / z)); // 60 px
-  const auto det = detection_at(kCam.cx + kCam.fx * x / z, kCam.cy + kCam.fy * y / z, size_px,
-                                size_px);
+  const auto det = detection_at(kCam.cx + kCam.fx * x / z, kCam.cy + kCam.fy * y / z, size_px, size_px);
 
   const auto pose = est->estimate(det, frame, af::Telemetry{});
   REQUIRE(pose.has_value());
@@ -90,9 +90,8 @@ TEST_CASE("Size-based estimator refuses an unknown object size", "[estimate]")
 {
   REQUIRE_THROWS_AS(af::make_size_based_estimator(0.0, kCam), std::invalid_argument);
   REQUIRE_THROWS_AS(af::make_size_based_estimator(-1.0, kCam), std::invalid_argument);
-  REQUIRE_THROWS_AS(
-      af::make_size_based_estimator(std::numeric_limits<double>::quiet_NaN(), kCam),
-      std::invalid_argument);
+  REQUIRE_THROWS_AS(af::make_size_based_estimator(std::numeric_limits<double>::quiet_NaN(), kCam),
+                    std::invalid_argument);
   REQUIRE_THROWS_AS(af::make_size_based_estimator(0.2, af::CameraIntrinsics{0, 900, 640, 360}),
                     std::invalid_argument);
 }
@@ -109,8 +108,8 @@ TEST_CASE("Ground-plane estimator recovers synthetic ground truth", "[estimate]"
   // Level frame (right, down, forward) rotated into the camera frame pitched down by tilt
   const Eigen::Vector3d cam(lateral, -forward * std::sin(tilt) + h * std::cos(tilt),
                             forward * std::cos(tilt) + h * std::sin(tilt));
-  const auto det = detection_at(kCam.cx + kCam.fx * cam.x() / cam.z(),
-                                kCam.cy + kCam.fy * cam.y() / cam.z(), 20, 20);
+  const auto det =
+      detection_at(kCam.cx + kCam.fx * cam.x() / cam.z(), kCam.cy + kCam.fy * cam.y() / cam.z(), 20, 20);
 
   const auto pose = est->estimate(det, frame, telemetry_at_altitude(h));
   REQUIRE(pose.has_value());
@@ -122,10 +121,8 @@ TEST_CASE("Ground-plane estimator recovers synthetic ground truth", "[estimate]"
   {
     // With a 30 deg down tilt the horizon is at y_n = -tan(30 deg)
     const double v_horizon = kCam.cy - kCam.fy * std::tan(tilt);
-    REQUIRE_FALSE(est->estimate(detection_at(640, v_horizon, 20, 20), frame,
-                                telemetry_at_altitude(h)));
-    REQUIRE_FALSE(est->estimate(detection_at(640, v_horizon - 100, 20, 20), frame,
-                                telemetry_at_altitude(h)));
+    REQUIRE_FALSE(est->estimate(detection_at(640, v_horizon, 20, 20), frame, telemetry_at_altitude(h)));
+    REQUIRE_FALSE(est->estimate(detection_at(640, v_horizon - 100, 20, 20), frame, telemetry_at_altitude(h)));
   }
 
   SECTION("Telemetry that is not fresh is never used")
@@ -140,8 +137,7 @@ TEST_CASE("Ground-plane estimator recovers synthetic ground truth", "[estimate]"
   {
     REQUIRE_FALSE(est->estimate(det, frame, telemetry_at_altitude(0.0)));
     REQUIRE_FALSE(est->estimate(det, frame, telemetry_at_altitude(-5.0)));
-    REQUIRE_FALSE(est->estimate(
-        det, frame, telemetry_at_altitude(std::numeric_limits<double>::infinity())));
+    REQUIRE_FALSE(est->estimate(det, frame, telemetry_at_altitude(std::numeric_limits<double>::infinity())));
   }
 }
 
@@ -157,8 +153,7 @@ TEST_CASE("Ground-plane estimator with a level camera", "[estimate]")
   REQUIRE(pose->position_m.y() == Approx(10.0).epsilon(0.01));
 
   // The image centre looks at the horizon
-  REQUIRE_FALSE(est->estimate(detection_at(kCam.cx, kCam.cy, 20, 20), frame,
-                              telemetry_at_altitude(10.0)));
+  REQUIRE_FALSE(est->estimate(detection_at(kCam.cx, kCam.cy, 20, 20), frame, telemetry_at_altitude(10.0)));
 
   REQUIRE_THROWS_AS(af::make_ground_plane_estimator(kCam, 120.0), std::invalid_argument);
 }

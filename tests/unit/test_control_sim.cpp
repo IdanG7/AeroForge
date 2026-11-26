@@ -1,12 +1,13 @@
 // Closed-loop checks of the follow controller against the built-in kinematic simulator.
 // No aircraft, no camera: the "observation" is computed from simulator ground truth.
 
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
 #include "aeroforge/dji_iface.hpp"
 #include "aeroforge/math.hpp"
 #include "aeroforge/modules.hpp"
+
 #include <algorithm>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <limits>
 
 using Catch::Approx;
@@ -27,9 +28,9 @@ af::Pose3D observe(const Eigen::Vector3d& target_ned, const af::Telemetry& tel, 
 
 std::unique_ptr<af::IController> make_controller(double max_speed = 3.0)
 {
-  return af::make_pid_velocity_controller(
-      Eigen::Vector3d(-3.0, 0.0, 0.0), Eigen::Vector3d(0.8, 0.8, 0.6), Eigen::Vector3d::Zero(),
-      Eigen::Vector3d(0.1, 0.1, 0.08), max_speed);
+  return af::make_pid_velocity_controller(Eigen::Vector3d(-3.0, 0.0, 0.0), Eigen::Vector3d(0.8, 0.8, 0.6),
+                                          Eigen::Vector3d::Zero(), Eigen::Vector3d(0.1, 0.1, 0.08),
+                                          max_speed);
 }
 
 } // namespace
@@ -137,8 +138,8 @@ TEST_CASE("PID follow controller input validation", "[control]")
 
   SECTION("Only fresh poses produce commands")
   {
-    for (auto v : {af::Validity::Predicted, af::Validity::Stale, af::Validity::Invalid,
-                   af::Validity::Unavailable})
+    for (auto v :
+         {af::Validity::Predicted, af::Validity::Stale, af::Validity::Invalid, af::Validity::Unavailable})
     {
       pose.validity = v;
       REQUIRE_FALSE(controller->velocity_cmd(pose, tel).has_value());
@@ -178,8 +179,7 @@ TEST_CASE("PID follow controller input validation", "[control]")
   {
     const Eigen::Vector3d z = Eigen::Vector3d::Zero();
     REQUIRE_THROWS_AS(af::make_pid_velocity_controller(z, z, z, z, 0.0), std::invalid_argument);
-    REQUIRE_THROWS_AS(
-        af::make_pid_velocity_controller(z, Eigen::Vector3d(-1, 0, 0), z, z, 3.0),
-        std::invalid_argument);
+    REQUIRE_THROWS_AS(af::make_pid_velocity_controller(z, Eigen::Vector3d(-1, 0, 0), z, z, 3.0),
+                      std::invalid_argument);
   }
 }

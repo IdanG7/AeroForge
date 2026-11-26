@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "aeroforge/ipc/socket_client.hpp"
+
 #include <spdlog/spdlog.h>
 
 #ifdef _WIN32
@@ -16,7 +17,7 @@ namespace ipc
 {
 
 SocketClient::SocketClient(const std::string& socket_path, int timeout_ms)
-  : socket_path_(socket_path), timeout_ms_(timeout_ms), socket_fd_(-1), connected_(false)
+    : socket_path_(socket_path), timeout_ms_(timeout_ms), socket_fd_(-1), connected_(false)
 {
 }
 
@@ -24,8 +25,7 @@ SocketClient::~SocketClient() = default;
 
 bool SocketClient::connect(int)
 {
-  spdlog::error("[SocketClient] Unix domain sockets are not supported on Windows ({})",
-                socket_path_);
+  spdlog::error("[SocketClient] Unix domain sockets are not supported on Windows ({})", socket_path_);
   return false;
 }
 
@@ -59,13 +59,13 @@ bool SocketClient::recv_exact(uint8_t*, size_t)
 
 #else
 
+#include <algorithm>
+#include <cstring>
+#include <fcntl.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <cstring>
-#include <algorithm>
 
 namespace af
 {
@@ -73,7 +73,7 @@ namespace ipc
 {
 
 SocketClient::SocketClient(const std::string& socket_path, int timeout_ms)
-  : socket_path_(socket_path), timeout_ms_(timeout_ms), socket_fd_(-1), connected_(false)
+    : socket_path_(socket_path), timeout_ms_(timeout_ms), socket_fd_(-1), connected_(false)
 {
 }
 
@@ -186,9 +186,8 @@ bool SocketClient::send(const std::vector<uint8_t>& data)
   // Send length prefix (4 bytes, big-endian)
   uint32_t length = static_cast<uint32_t>(data.size());
   uint8_t length_bytes[4] = {static_cast<uint8_t>((length >> 24) & 0xFF),
-                              static_cast<uint8_t>((length >> 16) & 0xFF),
-                              static_cast<uint8_t>((length >> 8) & 0xFF),
-                              static_cast<uint8_t>(length & 0xFF)};
+                             static_cast<uint8_t>((length >> 16) & 0xFF),
+                             static_cast<uint8_t>((length >> 8) & 0xFF), static_cast<uint8_t>(length & 0xFF)};
 
   ssize_t sent = ::send(socket_fd_, length_bytes, 4, 0);
   if (sent != 4)

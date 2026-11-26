@@ -1,12 +1,13 @@
 #include "aeroforge/math.hpp"
+
 #include <algorithm>
 #include <cmath>
 
 namespace af
 {
 
-PIDController::PIDController(const Eigen::Vector3d& kp, const Eigen::Vector3d& ki,
-                             const Eigen::Vector3d& kd, double max_output)
+PIDController::PIDController(const Eigen::Vector3d& kp, const Eigen::Vector3d& ki, const Eigen::Vector3d& kd,
+                             double max_output)
     : kp_(kp), ki_(ki), kd_(kd), max_output_(max_output)
 {
 }
@@ -39,8 +40,8 @@ Eigen::Vector3d PIDController::compute(const Eigen::Vector3d& error, double dt)
   prev_error_ = error;
 
   // PID output
-  Eigen::Vector3d output = kp_.cwiseProduct(error) + ki_.cwiseProduct(integral_) +
-                           kd_.cwiseProduct(derivative);
+  Eigen::Vector3d output =
+      kp_.cwiseProduct(error) + ki_.cwiseProduct(integral_) + kd_.cwiseProduct(derivative);
 
   // Clamp per-axis
   for (int i = 0; i < 3; ++i)

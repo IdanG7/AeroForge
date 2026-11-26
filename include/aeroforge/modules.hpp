@@ -4,6 +4,7 @@
 // throws std::invalid_argument with an actionable message when they are unusable.
 
 #include "plugin.hpp"
+
 #include <memory>
 #include <string>
 
@@ -23,8 +24,7 @@ struct CameraIntrinsics
 // ── Detectors ─────────────────────────────────────────────────────────────
 
 // Largest HSV-thresholded blob. Expects BGR input.
-std::unique_ptr<IDetector> make_colorball_detector(const cv::Scalar& hsv_lo,
-                                                   const cv::Scalar& hsv_hi,
+std::unique_ptr<IDetector> make_colorball_detector(const cv::Scalar& hsv_lo, const cv::Scalar& hsv_hi,
                                                    double min_area_px);
 
 // ArUco markers (cv::aruco predefined dictionary id, e.g. cv::aruco::DICT_4X4_50 == 0).
@@ -44,8 +44,8 @@ std::unique_ptr<ITracker> make_kalman_tracker(double q, double r);
 // unreachable the tracker passes detections through unchanged and, if `auto_reconnect`,
 // retries with exponential backoff up to `reconnect_max_interval_s`. Each update blocks for
 // up to `timeout_ms` waiting for the service.
-std::unique_ptr<ITracker> make_norfair_tracker(const std::string& socket_path,
-                                               int timeout_ms = 500, bool auto_reconnect = true,
+std::unique_ptr<ITracker> make_norfair_tracker(const std::string& socket_path, int timeout_ms = 500,
+                                               bool auto_reconnect = true,
                                                double reconnect_max_interval_s = 10.0);
 
 // ── Estimators ────────────────────────────────────────────────────────────
@@ -67,7 +67,6 @@ std::unique_ptr<IEstimator> make_ground_plane_estimator(const CameraIntrinsics& 
 std::unique_ptr<IController> make_pid_velocity_controller(const Eigen::Vector3d& desired_offset_m,
                                                           const Eigen::Vector3d& kp,
                                                           const Eigen::Vector3d& ki,
-                                                          const Eigen::Vector3d& kd,
-                                                          double max_speed_mps);
+                                                          const Eigen::Vector3d& kd, double max_speed_mps);
 
 } // namespace af

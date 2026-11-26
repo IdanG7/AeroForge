@@ -1,11 +1,12 @@
 #pragma once
 
 #include "validity.hpp"
-#include <opencv2/opencv.hpp>
+
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <opencv2/opencv.hpp>
 #include <optional>
 #include <vector>
 
@@ -30,7 +31,7 @@ struct Detection
   cv::Point2f centroid;
   float score{1.0f};
   Validity validity{Validity::Fresh}; // Predicted when the tracker coasted through this frame
-  std::optional<cv::Mat> rvec; // ArUco pose (optional)
+  std::optional<cv::Mat> rvec;        // ArUco pose (optional)
   std::optional<cv::Mat> tvec;
 };
 
@@ -38,8 +39,7 @@ struct Detection
 // Single-Producer Single-Consumer Lock-Free Ring Buffer
 // ──────────────────────────────────────────────────────────────────────────
 
-template <typename T, size_t N>
-class SpscRingBuffer
+template <typename T, size_t N> class SpscRingBuffer
 {
 public:
   SpscRingBuffer() : head_(0), tail_(0) {}

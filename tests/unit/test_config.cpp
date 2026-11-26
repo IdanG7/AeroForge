@@ -1,8 +1,9 @@
+#include "aeroforge/config.hpp"
+#include "aeroforge/pipeline.hpp"
+
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include "aeroforge/config.hpp"
-#include "aeroforge/pipeline.hpp"
 #include <string>
 
 using Catch::Approx;
@@ -85,14 +86,12 @@ TEST_CASE("Config: integer and floating-point numbers are interchangeable", "[co
 TEST_CASE("Config: errors name the file and the key", "[config]")
 {
   REQUIRE_THROWS_WITH(af::load_config("does/not/exist.yml"),
-                      ContainsSubstring("does/not/exist.yml") &&
-                          ContainsSubstring("not found"));
+                      ContainsSubstring("does/not/exist.yml") && ContainsSubstring("not found"));
 
   REQUIRE_THROWS_WITH(af::parse_config("safety: {}", "a.yml"),
                       ContainsSubstring("a.yml") && ContainsSubstring("pipeline"));
 
-  REQUIRE_THROWS_WITH(af::parse_config("pipeline: [unclosed", "a.yml"),
-                      ContainsSubstring("not valid YAML"));
+  REQUIRE_THROWS_WITH(af::parse_config("pipeline: [unclosed", "a.yml"), ContainsSubstring("not valid YAML"));
 
   REQUIRE_THROWS_WITH(af::parse_config(with_input("    type: dji\n"), "a.yml"),
                       ContainsSubstring("pipeline.input.type") && ContainsSubstring("webcam"));
@@ -100,9 +99,8 @@ TEST_CASE("Config: errors name the file and the key", "[config]")
   REQUIRE_THROWS_WITH(af::parse_config(with_input("    type: file\n"), "a.yml"),
                       ContainsSubstring("pipeline.input.path"));
 
-  REQUIRE_THROWS_WITH(
-      af::parse_config(with_input("    size: { width: 0, height: 480, fps: 30 }\n"), "a.yml"),
-      ContainsSubstring("pipeline.input.size"));
+  REQUIRE_THROWS_WITH(af::parse_config(with_input("    size: { width: 0, height: 480, fps: 30 }\n"), "a.yml"),
+                      ContainsSubstring("pipeline.input.size"));
 
   REQUIRE_THROWS_WITH(af::parse_config(with_input("    device: front\n"), "a.yml"),
                       ContainsSubstring("pipeline.input.device"));
@@ -110,19 +108,16 @@ TEST_CASE("Config: errors name the file and the key", "[config]")
   REQUIRE_THROWS_WITH(af::parse_config("pipeline:\n  modules:\n    - name: x\n", "a.yml"),
                       ContainsSubstring("pipeline.modules[0]") && ContainsSubstring("type"));
 
-  REQUIRE_THROWS_WITH(
-      af::parse_config("pipeline: {}\nsafety:\n  limits: { max_speed_mps: -1 }\n", "a.yml"),
-      ContainsSubstring("max_speed_mps"));
+  REQUIRE_THROWS_WITH(af::parse_config("pipeline: {}\nsafety:\n  limits: { max_speed_mps: -1 }\n", "a.yml"),
+                      ContainsSubstring("max_speed_mps"));
 
-  REQUIRE_THROWS_WITH(
-      af::parse_config("pipeline: {}\nsafety:\n  limits: { min_follow_dist_m: 9, "
-                       "max_follow_dist_m: 3 }\n",
-                       "a.yml"),
-      ContainsSubstring("min_follow_dist_m"));
+  REQUIRE_THROWS_WITH(af::parse_config("pipeline: {}\nsafety:\n  limits: { min_follow_dist_m: 9, "
+                                       "max_follow_dist_m: 3 }\n",
+                                       "a.yml"),
+                      ContainsSubstring("min_follow_dist_m"));
 
-  REQUIRE_THROWS_WITH(
-      af::parse_config("pipeline: {}\nsafety:\n  geofence: { min_alt_m: 80 }\n", "a.yml"),
-      ContainsSubstring("min_alt_m"));
+  REQUIRE_THROWS_WITH(af::parse_config("pipeline: {}\nsafety:\n  geofence: { min_alt_m: 80 }\n", "a.yml"),
+                      ContainsSubstring("min_alt_m"));
 }
 
 TEST_CASE("Config: defaults apply when sections are omitted", "[config]")
@@ -140,20 +135,18 @@ TEST_CASE("Pipeline construction reports unusable modules", "[config][pipeline]"
   auto build = [](const std::string& modules)
   { af::Pipeline p(af::parse_config("pipeline:\n  modules:\n" + modules, "test")); };
 
-  REQUIRE_THROWS_WITH(build("    - { name: det, type: yolo }\n"),
-                      ContainsSubstring("det") && ContainsSubstring("unknown type") &&
-                          ContainsSubstring("colorball"));
+  REQUIRE_THROWS_WITH(build("    - { name: det, type: yolo }\n"), ContainsSubstring("det") &&
+                                                                      ContainsSubstring("unknown type") &&
+                                                                      ContainsSubstring("colorball"));
 
   // The object size must be given explicitly: there is no silent default
-  REQUIRE_THROWS_WITH(
-      build("    - name: est\n      type: size_based\n"
-            "      params: { fx: 600, fy: 600, cx: 320, cy: 240 }\n"),
-      ContainsSubstring("est") && ContainsSubstring("object_diameter_m"));
+  REQUIRE_THROWS_WITH(build("    - name: est\n      type: size_based\n"
+                            "      params: { fx: 600, fy: 600, cx: 320, cy: 240 }\n"),
+                      ContainsSubstring("est") && ContainsSubstring("object_diameter_m"));
 
-  REQUIRE_THROWS_WITH(
-      build("    - name: est\n      type: size_based\n"
-            "      params: { object_diameter_m: 0, fx: 600, fy: 600, cx: 320, cy: 240 }\n"),
-      ContainsSubstring("real size"));
+  REQUIRE_THROWS_WITH(build("    - name: est\n      type: size_based\n"
+                            "      params: { object_diameter_m: 0, fx: 600, fy: 600, cx: 320, cy: 240 }\n"),
+                      ContainsSubstring("real size"));
 
   REQUIRE_THROWS_WITH(build("    - name: ctl\n      type: pid_velocity\n"
                             "      params: { kp: [1, 1], desired_offset_m: [-3, 0, 0], "

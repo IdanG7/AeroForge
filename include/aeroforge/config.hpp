@@ -14,8 +14,7 @@ namespace af
 // Config value types
 // ──────────────────────────────────────────────────────────────────────────
 
-using ConfigValue =
-    std::variant<bool, int, double, std::string, std::vector<int>, std::vector<double>>;
+using ConfigValue = std::variant<bool, int, double, std::string, std::vector<int>, std::vector<double>>;
 
 using ConfigMap = std::unordered_map<std::string, ConfigValue>;
 
@@ -100,8 +99,7 @@ PipelineConfig parse_config(const std::string& yaml_text, const std::string& ori
 // Helper accessors
 // ──────────────────────────────────────────────────────────────────────────
 
-template <typename T>
-T get_param(const ConfigMap& map, const std::string& key, const T& default_val)
+template <typename T> T get_param(const ConfigMap& map, const std::string& key, const T& default_val)
 {
   auto it = map.find(key);
   if (it == map.end())
@@ -122,7 +120,6 @@ std::optional<double> get_number(const ConfigMap& map, const std::string& key);
 std::optional<std::vector<double>> get_numbers(const ConfigMap& map, const std::string& key,
                                                size_t expected_size);
 
-Eigen::Vector3d get_vec3(const ConfigMap& map, const std::string& key,
-                         const Eigen::Vector3d& default_val);
+Eigen::Vector3d get_vec3(const ConfigMap& map, const std::string& key, const Eigen::Vector3d& default_val);
 
 } // namespace af

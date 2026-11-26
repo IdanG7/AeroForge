@@ -1,4 +1,5 @@
 #include "aeroforge/math.hpp"
+
 #include <cmath>
 
 namespace af

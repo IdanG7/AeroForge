@@ -1,7 +1,8 @@
 #include "aeroforge/modules.hpp"
+
+#include <algorithm>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <spdlog/spdlog.h>
-#include <algorithm>
 #include <stdexcept>
 
 namespace af
@@ -51,8 +52,8 @@ public:
       const float max_x = std::max({c[0].x, c[1].x, c[2].x, c[3].x});
       const float max_y = std::max({c[0].y, c[1].y, c[2].y, c[3].y});
 
-      det.bbox = cv::Rect(static_cast<int>(min_x), static_cast<int>(min_y),
-                          static_cast<int>(max_x - min_x), static_cast<int>(max_y - min_y));
+      det.bbox = cv::Rect(static_cast<int>(min_x), static_cast<int>(min_y), static_cast<int>(max_x - min_x),
+                          static_cast<int>(max_y - min_y));
       det.centroid.x = (c[0].x + c[1].x + c[2].x + c[3].x) / 4.0f;
       det.centroid.y = (c[0].y + c[1].y + c[2].y + c[3].y) / 4.0f;
       det.score = 1.0f;
@@ -75,8 +76,7 @@ std::unique_ptr<IDetector> make_aruco_detector(int dict_id)
 {
   if (dict_id < 0 || dict_id > cv::aruco::DICT_ARUCO_MIP_36h12)
   {
-    throw std::invalid_argument(
-        "aruco: dict_id is not a predefined cv::aruco dictionary (0 = DICT_4X4_50)");
+    throw std::invalid_argument("aruco: dict_id is not a predefined cv::aruco dictionary (0 = DICT_4X4_50)");
   }
   return std::make_unique<ArUcoDetector>(dict_id);
 }

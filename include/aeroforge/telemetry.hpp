@@ -1,6 +1,7 @@
 #pragma once
 
 #include "validity.hpp"
+
 #include <Eigen/Core>
 #include <cstdint>
 #include <string>

@@ -1,8 +1,9 @@
-#include "aeroforge/modules.hpp"
 #include "aeroforge/math.hpp"
+#include "aeroforge/modules.hpp"
+
 #include <cmath>
-#include <stdexcept>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 namespace af
 {
@@ -12,10 +13,7 @@ namespace
 class KalmanTracker : public ITracker
 {
 public:
-  KalmanTracker(double q, double r) : q_(q), r_(r)
-  {
-    spdlog::info("[KalmanTracker] q={}, r={}", q, r);
-  }
+  KalmanTracker(double q, double r) : q_(q), r_(r) { spdlog::info("[KalmanTracker] q={}, r={}", q, r); }
 
   void process(Frame& frame) override { (void)frame; }
 
@@ -45,8 +43,7 @@ public:
       // Initialize filter with first detection
       filter_.init(det.centroid.x, det.centroid.y);
       initialized_ = true;
-      spdlog::debug("[KalmanTracker] Initialized at ({:.1f}, {:.1f})", det.centroid.x,
-                    det.centroid.y);
+      spdlog::debug("[KalmanTracker] Initialized at ({:.1f}, {:.1f})", det.centroid.x, det.centroid.y);
     }
     else
     {

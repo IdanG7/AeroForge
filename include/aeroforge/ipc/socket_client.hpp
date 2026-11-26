@@ -3,11 +3,11 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
-#include <chrono>
 
 namespace af
 {

@@ -1,10 +1,11 @@
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
 #include "aeroforge/config.hpp"
 #include "aeroforge/ipc/msgpack_serializer.hpp"
 #include "aeroforge/modules.hpp"
 #include "aeroforge/pipeline.hpp"
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -40,11 +41,10 @@ const char* kNoService = "/tmp/aeroforge_test_no_such_service.sock";
 
 TEST_CASE("Norfair request carries version, command, dt and detections", "[norfair]")
 {
-  const auto request = MessagePackSerializer::serialize_update_request(
-      0.04, {make_detection(7, 10, 20, 30, 40, 0.5f)});
+  const auto request =
+      MessagePackSerializer::serialize_update_request(0.04, {make_detection(7, 10, 20, 30, 40, 0.5f)});
 
-  const auto handle =
-      msgpack::unpack(reinterpret_cast<const char*>(request.data()), request.size());
+  const auto handle = msgpack::unpack(reinterpret_cast<const char*>(request.data()), request.size());
   std::map<std::string, msgpack::object> map;
   handle.get().convert(map);
 
@@ -135,8 +135,7 @@ TEST_CASE("Malformed Norfair responses are rejected without throwing", "[norfair
   {
     msgpack::sbuffer buffer;
     msgpack::pack(buffer, 42);
-    REQUIRE_FALSE(
-        MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
+    REQUIRE_FALSE(MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
     REQUIRE_THAT(error, ContainsSubstring("not a map"));
   }
 
@@ -147,8 +146,7 @@ TEST_CASE("Malformed Norfair responses are rejected without throwing", "[norfair
     packer.pack_map(1);
     packer.pack("version");
     packer.pack(1);
-    REQUIRE_FALSE(
-        MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
+    REQUIRE_FALSE(MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
     REQUIRE_THAT(error, ContainsSubstring("success"));
   }
 
@@ -161,8 +159,7 @@ TEST_CASE("Malformed Norfair responses are rejected without throwing", "[norfair
     packer.pack(true);
     packer.pack("detections");
     packer.pack("oops");
-    REQUIRE_FALSE(
-        MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
+    REQUIRE_FALSE(MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
     REQUIRE_THAT(error, ContainsSubstring("not an array"));
   }
 
@@ -178,8 +175,7 @@ TEST_CASE("Malformed Norfair responses are rejected without throwing", "[norfair
     packer.pack_map(1);
     packer.pack("id");
     packer.pack("seven");
-    REQUIRE_FALSE(
-        MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
+    REQUIRE_FALSE(MessagePackSerializer::deserialize_update_response(bytes_of(buffer), out, error));
     REQUIRE_THAT(error, ContainsSubstring("parse error"));
   }
 }
@@ -188,12 +184,10 @@ TEST_CASE("Norfair tracker factory validates its parameters", "[norfair]")
 {
   REQUIRE_THROWS_AS(af::make_norfair_tracker("", 500, false, 10.0), std::invalid_argument);
   REQUIRE_THROWS_AS(af::make_norfair_tracker(kNoService, 0, false, 10.0), std::invalid_argument);
-  REQUIRE_THROWS_AS(af::make_norfair_tracker(kNoService, 500, false, 0.0),
-                    std::invalid_argument);
+  REQUIRE_THROWS_AS(af::make_norfair_tracker(kNoService, 500, false, 0.0), std::invalid_argument);
 }
 
-TEST_CASE("Norfair tracker passes detections through when the service is unreachable",
-          "[norfair]")
+TEST_CASE("Norfair tracker passes detections through when the service is unreachable", "[norfair]")
 {
   auto tracker = af::make_norfair_tracker(kNoService, 100, false, 10.0);
 

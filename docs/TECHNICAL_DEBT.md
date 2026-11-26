@@ -55,7 +55,7 @@ maintainability. **P3** enhancements.
 | 2.7 | Template tracker constants (search window, thresholds, 45-frame loss) are hard-coded; its motion model works in pixels per frame, so behaviour changes with frame rate |
 | 2.8 | No sanitizer run has been done. Presets exist for Clang/GCC (`*-debug`); MSVC `/fsanitize=address` is not wired up |
 | 2.9 | Two overlapping workflows (`ci.yml`, `build.yml`) build the same thing on every push; `build.yml` clones vcpkg at HEAD instead of a pinned commit |
-| 2.10 | `clang-format` has not been run on the new and moved files (not installed on the development machine). The CI format job will report differences |
+| 2.10 | `clang-format`: fixed, all sources formatted with clang-format 18.1.8 (the version CI pins) |
 | 2.11 | No recording: frames, detections and telemetry cannot be saved for replay. Replay of plain video exists |
 | 2.12 | Root directory clutter (`PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt`): fixed, deleted on `master` |
 | 2.13 | Placeholder contact e-mail in `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`: closed, the files were deleted on `master`. The repository now has no security contact or contribution guide |

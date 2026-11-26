@@ -1,8 +1,10 @@
 #include "aeroforge/pipeline.hpp"
+
 #include "aeroforge/modules.hpp"
 #include "aeroforge/pytracking_iface.hpp"
-#include <spdlog/spdlog.h>
+
 #include <cmath>
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace af
@@ -72,8 +74,8 @@ struct Pipeline::Impl
   {
     if (detector)
     {
-      throw std::runtime_error("more than one detector is configured ('" + mod.type +
-                               "' after '" + detector->name() + "')");
+      throw std::runtime_error("more than one detector is configured ('" + mod.type + "' after '" +
+                               detector->name() + "')");
     }
     detector = std::move(d);
   }
@@ -90,8 +92,7 @@ struct Pipeline::Impl
     const std::string& type = mod.type;
     if (type == "interactive" || type == "template")
     {
-      set_target_tracker(make_template_tracker(get_param<std::string>(mod.params, "perf_csv", "")),
-                         mod);
+      set_target_tracker(make_template_tracker(get_param<std::string>(mod.params, "perf_csv", "")), mod);
     }
     else if (type == "pytracking")
     {
@@ -134,13 +135,11 @@ struct Pipeline::Impl
     }
     else if (type == "size_based")
     {
-      estimator = make_size_based_estimator(required_number(mod, "object_diameter_m"),
-                                            intrinsics_from(mod));
+      estimator = make_size_based_estimator(required_number(mod, "object_diameter_m"), intrinsics_from(mod));
     }
     else if (type == "ground_plane")
     {
-      estimator = make_ground_plane_estimator(intrinsics_from(mod),
-                                              number_or(mod, "camera_tilt_deg", 0.0));
+      estimator = make_ground_plane_estimator(intrinsics_from(mod), number_or(mod, "camera_tilt_deg", 0.0));
     }
     else if (type == "pid_velocity")
     {
@@ -166,8 +165,7 @@ Pipeline::Pipeline(const PipelineConfig& config) : impl_(std::make_unique<Impl>(
     }
     catch (const std::exception& e)
     {
-      throw std::runtime_error("pipeline module '" + mod.name + "' (type " + mod.type +
-                               "): " + e.what());
+      throw std::runtime_error("pipeline module '" + mod.name + "' (type " + mod.type + "): " + e.what());
     }
   }
 
@@ -179,16 +177,15 @@ Pipeline::Pipeline(const PipelineConfig& config) : impl_(std::make_unique<Impl>(
     impl_->detector = std::move(t);
   }
 
-  spdlog::info("Pipeline: detector={}, tracker={}, estimator={}, controller={}",
-               impl_->detector->name(), impl_->tracker ? impl_->tracker->name() : "none",
+  spdlog::info("Pipeline: detector={}, tracker={}, estimator={}, controller={}", impl_->detector->name(),
+               impl_->tracker ? impl_->tracker->name() : "none",
                impl_->estimator ? impl_->estimator->name() : "none",
                impl_->controller ? impl_->controller->name() : "none");
 }
 
 Pipeline::~Pipeline() = default;
 
-PipelineOutput Pipeline::step(const Frame& frame, const Telemetry& telemetry,
-                              bool control_enabled)
+PipelineOutput Pipeline::step(const Frame& frame, const Telemetry& telemetry, bool control_enabled)
 {
   PipelineOutput out;
   if (frame.img.empty())

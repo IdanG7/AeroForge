@@ -1,6 +1,7 @@
-#include <catch2/catch_test_macros.hpp>
 #include "aeroforge/core.hpp"
+
 #include <atomic>
+#include <catch2/catch_test_macros.hpp>
 #include <thread>
 
 TEST_CASE("SpscRingBuffer basic operations", "[core]")

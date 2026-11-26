@@ -1,7 +1,8 @@
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
 #include "../support/synthetic.hpp"
 #include "aeroforge/modules.hpp"
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 
 using Catch::Approx;
@@ -62,12 +63,10 @@ TEST_CASE("ColorBallDetector reports nothing when there is nothing", "[integrati
 
 TEST_CASE("ColorBallDetector parameter validation", "[integration][vision]")
 {
-  REQUIRE_THROWS_AS(
-      af::make_colorball_detector(cv::Scalar(90, 0, 0), cv::Scalar(30, 255, 255), 200),
-      std::invalid_argument);
-  REQUIRE_THROWS_AS(
-      af::make_colorball_detector(cv::Scalar(30, 0, 0), cv::Scalar(90, 255, 255), -1),
-      std::invalid_argument);
+  REQUIRE_THROWS_AS(af::make_colorball_detector(cv::Scalar(90, 0, 0), cv::Scalar(30, 255, 255), 200),
+                    std::invalid_argument);
+  REQUIRE_THROWS_AS(af::make_colorball_detector(cv::Scalar(30, 0, 0), cv::Scalar(90, 255, 255), -1),
+                    std::invalid_argument);
 }
 
 TEST_CASE("ArUcoDetector finds a generated marker", "[integration][vision]")
