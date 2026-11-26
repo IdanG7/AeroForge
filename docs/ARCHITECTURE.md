@@ -87,7 +87,8 @@ boxes and drops the target after about 45 frames. `colorball`: largest HSV blob.
 optional, see below.
 
 **Tracker.** `kalman`: constant-velocity smoothing of the first detection's centroid, two
-independent 1-D filters, process noise `q·I` per step (not scaled by `dt`).
+independent 1-D filters, process noise `q·I` per step (not scaled by `dt`). `norfair`:
+optional, hands all detections to the Norfair Python service for id association, see below.
 
 **Estimators.** `size_based`: `Z = f·D / d`, needs the real object size.
 `ground_plane`: intersects the pixel ray with a flat ground plane using telemetry altitude
@@ -120,8 +121,8 @@ are interchangeable. See `configs/track_interactive.yml` for a commented example
 ## PyTracking bridge protocol (optional detector)
 
 `src/tracking/pytracking_iface.cpp` starts `python/pytracking_wrapper.py` and exchanges
-one line of JSON per request over the child's stdin and stdout. It is **not** Norfair,
-MessagePack or a socket; none of those exist in this repository.
+one line of JSON per request over the child's stdin and stdout. It is separate from the
+Norfair service link described further down.
 
 - Transport: child process pipes. Requests: one JSON object per line on stdin. Replies:
   one line on stdout starting with the literal prefix `AFJSON ` followed by a JSON
@@ -142,6 +143,28 @@ MessagePack or a socket; none of those exist in this repository.
   detections.
 - Platform: implemented and previously run on Windows. The POSIX branch opens a write-only
   pipe and cannot receive replies; it fails on first use. See `TECHNICAL_DEBT.md`.
+
+## Norfair service protocol (optional tracker)
+
+`src/tracking/norfair_tracker.cpp` talks to `services/norfair/norfair_service.py` through
+`af::ipc::SocketClient` and `af::ipc::MessagePackSerializer`.
+
+- Transport: Unix domain socket (default `/tmp/aeroforge_norfair.sock`), one request and
+  one reply per frame. Each message is a 4-byte big-endian length followed by a MessagePack
+  map; messages over 1 MB are refused.
+- Request: `{"version": 1, "cmd": "update", "dt": seconds, "detections": [{"id", "bbox":
+  [x, y, w, h], "centroid": [cx, cy], "score"}]}`.
+- Reply: `{"version": 1, "success": true, "detections": [...]}` in the same shape with
+  Norfair's track ids, or `{"success": false, "error": "..."}`. A version mismatch is
+  logged, not rejected.
+- Timing: synchronous on the frame loop. Reads wait up to `timeout_ms` (default 500), a
+  connection attempt up to 5 s.
+- Failure: on a failed connect, a timeout, a closed socket or an unparsable reply the
+  tracker switches to pass-through (detections returned unchanged) and, if
+  `auto_reconnect` is set, retries after 1 s, doubling up to `reconnect_max_interval_s`.
+- Platform: macOS and Linux. On Windows the client is a stub whose `connect()` fails, so
+  the tracker is always in pass-through. Not yet run end to end; see `TECHNICAL_DEBT.md`
+  1.15 to 1.18.
 
 ## Tests
 

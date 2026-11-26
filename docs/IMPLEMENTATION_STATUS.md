@@ -11,7 +11,7 @@ the older README or progress notes.
 | Machine | Windows 11 Pro (10.0.26300) x64, Intel Core i5-11600K, 32 GB, GTX 1080 (unused) |
 | Compiler | Visual Studio 2022, MSVC 14.44.35207. Visual Studio 2019 (14.29) is also installed |
 | Tools | CMake 4.1.2, vcpkg at commit `adf54cf2` |
-| Key libraries | OpenCV 4.11.0, Eigen 3.4.1, Catch2 3.11.0, Dear ImGui 1.91.9, GLFW 3.4, yaml-cpp 0.8.0, spdlog 1.15.3, fmt 12.0.0 |
+| Key libraries | msgpack-cxx (no Boost), OpenCV 4.11.0, Eigen 3.4.1, Catch2 3.11.0, Dear ImGui 1.91.9, GLFW 3.4, yaml-cpp 0.8.0, spdlog 1.15.3, fmt 12.0.0 |
 | Camera | one USB webcam, 1280x720 at 30 FPS |
 
 **This is not the MacBook named in the project brief.** There is no macOS, Xcode or iPhone
@@ -26,13 +26,13 @@ be run. Those items are listed as blocked or unverified below.
 | Configure (`cmake --fresh --preset win-rel -G "Visual Studio 17 2022"`) | Passed |
 | Dependency build from source | Passed, **44 minutes** |
 | Project build (`cmake --build --preset win-rel`), `/W4 /WX` | Passed, no warnings |
-| Tests (`ctest --preset win-tests`) | **38 of 38 passed**, 10 s |
-| Debug configuration in a new build directory (`win-debug` preset): configure, build, `ctest --preset win-debug-tests` | Passed, 36 of 36 (run before the last two tests were added), 23 s. Dependencies came from vcpkg's binary cache in 3.5 s, so only the first build on a machine pays the 44 minutes |
+| Tests (`ctest --preset win-tests`) | **45 of 45 passed**, 8 s (after merging the Norfair work from `master`; 38 of 38 before) |
+| Debug configuration in a new build directory (`win-debug` preset): configure, build, `ctest --preset win-debug-tests` | Passed, 45 of 45 after the merge. Dependencies came from vcpkg's binary cache in 3.5 s, so only the first build on a machine pays the 44 minutes |
 | Visual Studio 2019 generator | **Fails at link time** on this machine: vcpkg builds the dependencies with the newest installed Visual Studio (2022), and its static libraries (Catch2) need the 2022 runtime. The libraries themselves compiled. Use the 2022 generator, or pin vcpkg to the v142 toolset |
-| GCC 13.3 `-std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only` under WSL, against the vcpkg headers | Passed for every library, application and test source except `src/ui/hud.cpp` and `demo_viewer.cpp` (not included in the run). Diagnostics only: nothing was linked or executed on Linux |
+| GCC 13.3 `-std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only` under WSL, against the vcpkg headers | Passed for every library, application and test source except `src/ui/hud.cpp` and `demo_viewer.cpp` (not included in the run). Repeated after the merge for the three Norfair sources only, including the POSIX socket code. Diagnostics only: nothing was linked or executed on Linux |
 | macOS, Linux, CI | **Not run** |
 
-Test inventory: 32 Catch2 cases (ring buffer and frame pool 3, PID 2, Kalman 2, estimators and frames 5,
+Test inventory: 39 Catch2 cases (Norfair serializer, tracker fallback and pipeline wiring 7, ring buffer and frame pool 3, PID 2, Kalman 2, estimators and frames 5,
 controller and simulator 3, safety gate 3, config and pipeline construction 5, detectors 4,
 tracking / replay / pipeline 5) and 6 application smoke tests.
 
@@ -91,7 +91,9 @@ States: **Verified** (implemented and exercised by a test or run recorded above)
 | Kalman tracker (centroid smoothing) | Verified through the pipeline test | First detection only; noise not scaled by `dt` |
 | PyTracking bridge, Windows | Unverified | Compiles. Bounded waits and restart added. Not run here: needs PyTorch, a pytracking checkout and model files |
 | PyTracking bridge, macOS / Linux | Broken | Write-only pipe, cannot read replies |
-| Norfair, MessagePack, socket IPC | Missing | Named in the brief; never existed in this repository |
+| Norfair tracker (`type: norfair`), MessagePack serializer | Partly verified | Merged from `master` on 2026-11-26 and wired into the module factory and pipeline. Verified on Windows by unit tests: request encoding, response parsing including malformed payloads, parameter validation, pass-through when the service is unreachable. **Never run against the Python service here** |
+| Norfair socket client (Unix domain socket) | Unverified on macOS / Linux, unavailable on Windows | POSIX code is as merged and has not been compiled or run on this machine. On Windows `connect()` always fails, so the tracker stays in pass-through |
+| Norfair Python service (`services/norfair`) | Unverified | Not run here |
 | Camera calibration, lens distortion | Missing | Intrinsics are typed into the config |
 | Learned detectors (YOLO etc.) | Missing | Mentioned in old docs only |
 
@@ -138,8 +140,8 @@ States: **Verified** (implemented and exercised by a test or run recorded above)
 | `ci.yml` | Unverified | Rewritten; has never run (the old one never triggered on `master`) |
 | `build.yml` (build + automatic release) | Unverified | Not touched. Publishes a release when the version changes |
 | clang-format / clang-tidy | Not run | Not installed locally |
-| README, BUILD_INSTRUCTIONS | Rewritten to match the code | Placeholder e-mail addresses in SECURITY / CONTRIBUTING / CODE_OF_CONDUCT remain |
-| `PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt`, `WINDOWS_*.md` | Obsolete | Describe October 2025; left in place, see TECHNICAL_DEBT 2.12 |
+| README, BUILD_INSTRUCTIONS | Rewritten to match the code | |
+| `PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | Removed | Deleted on `master` by the owner; the merge keeps that |
 
 ## Defects found in the audit
 

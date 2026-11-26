@@ -52,7 +52,7 @@ CameraIntrinsics intrinsics_from(const ModuleConfig& mod)
 }
 
 const char* kKnownTypes = "detectors: interactive, colorball, aruco, pytracking; "
-                          "trackers: kalman; estimators: size_based, ground_plane; "
+                          "trackers: kalman, norfair; estimators: size_based, ground_plane; "
                           "controllers: pid_velocity";
 
 } // namespace
@@ -123,6 +123,14 @@ struct Pipeline::Impl
     else if (type == "kalman")
     {
       tracker = make_kalman_tracker(number_or(mod, "q", 0.02), number_or(mod, "r", 0.20));
+    }
+    else if (type == "norfair")
+    {
+      tracker = make_norfair_tracker(
+          get_param<std::string>(mod.params, "socket_path", "/tmp/aeroforge_norfair.sock"),
+          static_cast<int>(number_or(mod, "timeout_ms", 500.0)),
+          get_param<bool>(mod.params, "auto_reconnect", true),
+          number_or(mod, "reconnect_max_interval_s", 10.0));
     }
     else if (type == "size_based")
     {

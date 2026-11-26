@@ -21,6 +21,7 @@
     "spdlog",
     "catch2",
     "eigen3",
-    "nlohmann-json"
+    "nlohmann-json",
+    "msgpack"
   ]
 }

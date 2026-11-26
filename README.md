@@ -30,6 +30,8 @@ The honest state of every subsystem, with the evidence, is in
 - Headless mode with a JSON report, used by the automated tests.
 - YAML configuration with validation and readable error messages.
 - Optional deep-learning tracker through a Python subprocess (PyTracking, Windows only).
+- Optional multi-object association through the Norfair Python service (macOS and Linux
+  only, not yet run against the current pipeline).
 
 ## Quick start
 
@@ -88,7 +90,7 @@ pipeline:
     size: { width: 1280, height: 720, fps: 30 }
   modules:
     - { name: detector, type: interactive }          # or colorball, aruco, pytracking
-    - { name: tracker, type: kalman, params: { q: 0.02, r: 0.20 } }
+    - { name: tracker, type: kalman, params: { q: 0.02, r: 0.20 } }   # or norfair
     - name: estimator
       type: size_based                               # or ground_plane
       params: { object_diameter_m: 0.20, fx: 920, fy: 920, cx: 640, cy: 360 }
@@ -109,6 +111,36 @@ safety:
 `object_diameter_m` must be the real size of the object you track. Range from size is
 only as good as that number.
 
+## Norfair tracking service (optional, macOS and Linux)
+
+`type: norfair` sends each frame's detections to a separate Python process running
+[Norfair](https://github.com/tryolabs/norfair), which assigns persistent track ids.
+
+```bash
+cd services/norfair
+./run.sh        # creates a virtual environment, installs dependencies, listens on /tmp/aeroforge_norfair.sock
+```
+
+```bash
+./build/mac-rel/bin/aeroforge-track --config configs/track_norfair.yml
+```
+
+```yaml
+- name: tracker
+  type: norfair
+  params:
+    socket_path: "/tmp/aeroforge_norfair.sock"
+    timeout_ms: 500
+    auto_reconnect: true
+    reconnect_max_interval_s: 10.0
+```
+
+If the service is not running, detections pass through unchanged and the tracker retries
+with exponential backoff. The link is a Unix domain socket, so it does not work on
+Windows: there the tracker stays in pass-through. Each update waits up to `timeout_ms`
+for the service, on the frame loop. Tuning is described in
+[services/norfair/README.md](services/norfair/README.md).
+
 ## Documentation
 
 | Document | Contents |
@@ -127,10 +159,6 @@ No aircraft is supported. The first planned hardware target is read-only video a
 telemetry from an original DJI Mini 2 through an iPhone; that work is at the research
 stage. If you fly anything near this software, a human pilot flies it, within your local
 rules, and AeroForge only watches.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 

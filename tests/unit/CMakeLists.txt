@@ -15,3 +15,5 @@ af_add_unit_test(test_estimators)
 af_add_unit_test(test_control_sim)
 af_add_unit_test(test_safety_gate)
 af_add_unit_test(test_config)
+
+af_add_unit_test(test_norfair)

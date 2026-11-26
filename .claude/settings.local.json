@@ -29,7 +29,8 @@
       "Bash(./vcpkg/vcpkg search:*)",
       "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" --build build/win-rel --config RelWithDebInfo -j)",
       "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" --build build/win-rel --config RelWithDebInfo --target aeroforge-track -j)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

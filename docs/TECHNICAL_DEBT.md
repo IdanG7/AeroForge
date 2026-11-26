@@ -37,6 +37,10 @@ maintainability. **P3** enhancements.
 | 1.12 | No camera calibration or lens distortion handling; intrinsics are hand-typed in configs | Open. Add an OpenCV calibration tool and a calibration file |
 | 1.13 | `build.yml` tags and publishes a GitHub release automatically when the version in `CMakeLists.txt` changes on `master` | Open, **owner decision**: keep automatic, or require a manual trigger. Do not bump the version until decided |
 | 1.14 | `python/venv/` (thousands of files) was untracked and not ignored: one `git add .` away from being committed | Fixed (`.gitignore`) |
+| 1.15 | **Norfair link is POSIX only.** `SocketClient` uses Unix domain sockets, which CPython does not offer on Windows, so on Windows `type: norfair` only ever passes detections through | Open. Add a loopback TCP transport on both sides (service and client), keep the same length-prefixed MessagePack framing |
+| 1.16 | Norfair is synchronous on the frame loop: each update waits up to `timeout_ms` (500 ms default) and a reconnect attempt up to 5 s. No request id, so a late reply to a timed-out request would be read as the answer to the next one (today the client disconnects on timeout, which avoids it) | Open. Same worker-thread design as 1.8 |
+| 1.17 | Norfair tracker skips the service when a frame has no detections, so the service's tracks do not age during gaps; while in pass-through, ids are the detector's, and they change meaning when the service reconnects. Results carry no `Validity` (always `Fresh`) | Open |
+| 1.18 | The Norfair path has never been run end to end in this architecture: POSIX socket code not compiled here, Python service not started here | Open. Run on the Mac: service + `configs/track_norfair.yml`, then add a CTest that starts the service |
 
 ## P2
 
@@ -53,8 +57,8 @@ maintainability. **P3** enhancements.
 | 2.9 | Two overlapping workflows (`ci.yml`, `build.yml`) build the same thing on every push; `build.yml` clones vcpkg at HEAD instead of a pinned commit |
 | 2.10 | `clang-format` has not been run on the new and moved files (not installed on the development machine). The CI format job will report differences |
 | 2.11 | No recording: frames, detections and telemetry cannot be saved for replay. Replay of plain video exists |
-| 2.12 | Root directory clutter: `PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt` describe October 2025 and contradict the code. Archive or delete (owner decision) |
-| 2.13 | Placeholder contact e-mail in `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (owner must supply an address) |
+| 2.12 | Root directory clutter (`PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt`): fixed, deleted on `master` |
+| 2.13 | Placeholder contact e-mail in `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`: closed, the files were deleted on `master`. The repository now has no security contact or contribution guide |
 | 2.14 | `stream` input (`rtsp://`, `udp://`) is wired but untested, and the vcpkg OpenCV build has no FFmpeg backend, so most URLs will not open |
 | 2.15 | `demo_viewer` duplicates what `aeroforge-track` does without a pipeline |
 
@@ -69,10 +73,9 @@ maintainability. **P3** enhancements.
 | 3.5 | Learned detector (ONNX Runtime) once the CPU pipeline has benchmarks to compare against |
 | 3.6 | PX4 SITL / Gazebo through MAVSDK if the kinematic simulator stops being enough |
 
-## Corrections to the project brief
+## Correction (2026-11-26)
 
-The recovery brief lists components that are **not in this repository**: Norfair,
-MessagePack IPC and Unix-socket communication. The only inter-process link is the
-PyTracking bridge (JSON lines over child-process pipes). Items about Norfair timeouts and
-Windows support for Unix sockets therefore have nothing to act on; the equivalent real
-issues are 1.7 to 1.9 above.
+An earlier version of this file said Norfair, MessagePack IPC and Unix-socket communication
+were not in the repository. That was wrong: the audit was done on a local `master` that
+was two commits behind `origin/master`, where that work had already landed. It has since
+been merged; see 1.15 to 1.18.

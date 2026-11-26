@@ -67,6 +67,7 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(msgpack-cxx REQUIRED)
 
 if(AEROFORGE_WITH_IMGUI)
   find_package(imgui REQUIRED)
@@ -187,6 +188,9 @@ add_library(af_tracking STATIC
   src/tracking/kalman_tracker.cpp
   src/tracking/template_tracker.cpp
   src/tracking/pytracking_iface.cpp
+  src/tracking/norfair_tracker.cpp
+  src/ipc/socket_client.cpp
+  src/ipc/msgpack_serializer.cpp
 )
 
 target_include_directories(af_tracking
@@ -202,6 +206,7 @@ target_link_libraries(af_tracking
     opencv_imgcodecs
     opencv_video
     opencv_features2d
+    msgpack-cxx
   PRIVATE
     nlohmann_json::nlohmann_json
 )

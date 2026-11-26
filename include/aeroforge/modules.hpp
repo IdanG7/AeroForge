@@ -39,6 +39,15 @@ std::unique_ptr<ITargetTracker> make_template_tracker(const std::string& perf_cs
 // Constant-velocity Kalman smoothing of the first detection's centroid.
 std::unique_ptr<ITracker> make_kalman_tracker(double q, double r);
 
+// Multi-object association by the Norfair Python service (services/norfair) over a Unix
+// domain socket. POSIX only: on Windows the connection always fails. While the service is
+// unreachable the tracker passes detections through unchanged and, if `auto_reconnect`,
+// retries with exponential backoff up to `reconnect_max_interval_s`. Each update blocks for
+// up to `timeout_ms` waiting for the service.
+std::unique_ptr<ITracker> make_norfair_tracker(const std::string& socket_path,
+                                               int timeout_ms = 500, bool auto_reconnect = true,
+                                               double reconnect_max_interval_s = 10.0);
+
 // ── Estimators ────────────────────────────────────────────────────────────
 
 // Range from apparent size. `object_diameter_m` is the real size of the tracked object and
