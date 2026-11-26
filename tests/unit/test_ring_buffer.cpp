@@ -21,7 +21,7 @@ TEST_CASE("SpscRingBuffer basic operations", "[core]")
     REQUIRE(buf.size() == 1);
     REQUIRE_FALSE(buf.empty());
 
-    int val;
+    int val = 0;
     REQUIRE(buf.pop(val));
     REQUIRE(val == 10);
     REQUIRE(buf.empty());
@@ -43,7 +43,7 @@ TEST_CASE("SpscRingBuffer basic operations", "[core]")
     buf.push(1);
     buf.push(2);
 
-    int val;
+    int val = 0;
     buf.pop(val);
     REQUIRE(val == 1);
 
