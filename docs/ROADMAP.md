@@ -1,298 +1,95 @@
-# AeroForge Development Roadmap
-
-## ✅ Phase 1: Foundation & Core Pipeline (COMPLETED)
-
-### 1.1 Core Framework ✓
-- [x] Cross-platform build system (CMake, vcpkg)
-- [x] C++20 codebase with modern practices
-- [x] Lock-free SPSC ring buffers for data flow
-- [x] Timing utilities and frame management
-- [x] Comprehensive unit tests (Catch2)
-- [x] CI/CD pipeline (GitHub Actions)
-
-### 1.2 Vision Pipeline ✓
-- [x] **Interactive object selection** (click & drag)
-- [x] Template matching tracker (no OpenCV contrib needed)
-- [x] Kalman filter for smooth tracking
-- [x] Size-based 3D pose estimation
-- [x] Camera coordinate transformations
-
-### 1.3 Control System ✓
-- [x] PID velocity controller
-- [x] Configurable gains (kp, ki, kd)
-- [x] Safety interlock system
-- [x] Emergency stop functionality
-- [x] Mock drone interface for testing
-
-### 1.4 User Interface ✓
-- [x] **Professional redesigned UI**
-- [x] Large camera feed window with interactive selection
-- [x] Real-time telemetry display
-- [x] Pipeline status monitoring
-- [x] 3D position and velocity visualization
-- [x] Color-coded status indicators
-- [x] FPS and performance metrics
-
-### 1.5 Configuration & Deployment ✓
-- [x] YAML-based configuration system
-- [x] Example configs (colorball tracking)
-- [x] Comprehensive README and build instructions
-- [x] GitHub Actions for automated builds
-- [x] Artifact generation (.exe files)
-
----
-
-## 🚧 Phase 2: Advanced Tracking & Robustness (NEXT)
-
-### 2.1 Enhanced Tracking Algorithms
-- [ ] **Multi-object tracking** (track multiple targets simultaneously)
-- [ ] Improve template matching with scale adaptation
-- [ ] Add feature-based tracking (ORB/SIFT) as alternative
-- [ ] Implement tracking confidence scores
-- [ ] Auto-reinitialization on tracking loss
-
-**Priority**: HIGH
-**Estimated Effort**: 2-3 weeks
-**Why Next**: Current tracker works well but loses track on occlusions
-
-### 2.2 Advanced Detection Methods
-- [ ] Integrate YOLO for object detection
-- [ ] Support custom trained models
-- [ ] Add background subtraction for motion detection
-- [ ] Color-based segmentation improvements
-- [ ] Real-time performance profiling
-
-**Priority**: MEDIUM
-**Estimated Effort**: 3-4 weeks
-
-### 2.3 Camera Calibration
-- [ ] Built-in camera calibration tool
-- [ ] Save/load calibration parameters
-- [ ] Fisheye lens support
-- [ ] Automatic calibration from checkerboard
-- [ ] Distortion correction
-
-**Priority**: MEDIUM
-**Estimated Effort**: 1-2 weeks
-**Why Important**: Improves 3D position accuracy
-
----
-
-## 📊 Phase 3: Data Recording & Analysis
-
-### 3.1 Data Recording
-- [ ] Record video with synchronized telemetry
-- [ ] Export tracking data to CSV/JSON
-- [ ] Replay mode for offline analysis
-- [ ] Frame-by-frame stepping
-- [ ] Annotation tools
-
-**Priority**: MEDIUM
-**Estimated Effort**: 2 weeks
-**Use Case**: Research, debugging, performance evaluation
-
-### 3.2 Visualization & Debugging
-- [ ] 3D visualization of drone and target positions
-- [ ] Trajectory plotting (past N seconds)
-- [ ] Performance graphs (latency, FPS over time)
-- [ ] Debug mode with intermediate pipeline stages
-- [ ] Export visualizations to image/video
-
-**Priority**: LOW
-**Estimated Effort**: 2-3 weeks
-
----
-
-## 🚁 Phase 4: Real Drone Integration
-
-### 4.1 DJI SDK Integration
-- [ ] Complete DJI SDK wrapper implementation
-- [ ] Test with DJI Tello
-- [ ] Test with DJI Mavic series
-- [ ] Implement all telemetry channels
-- [ ] Handle connection loss gracefully
-
-**Priority**: HIGH (if targeting real drones)
-**Estimated Effort**: 3-4 weeks
-**Dependency**: Access to DJI hardware
-
-### 4.2 Safety Enhancements
-- [ ] Geofencing with visual alerts
-- [ ] Altitude limits enforcement
-- [ ] Battery level monitoring
-- [ ] Return-to-home on signal loss
-- [ ] Collision avoidance basics
-
-**Priority**: HIGH (for real deployment)
-**Estimated Effort**: 2-3 weeks
-
-### 4.3 Alternative Drone Platforms
-- [ ] PX4/ArduPilot MAVLink support
-- [ ] Betaflight integration
-- [ ] Custom drone protocols
-- [ ] Simulation integration (Gazebo, AirSim)
-
-**Priority**: MEDIUM
-**Estimated Effort**: 4-5 weeks
-
----
-
-## ⚡ Phase 5: Performance & Optimization
-
-### 5.1 CUDA Acceleration
-- [ ] GPU-accelerated template matching
-- [ ] CUDA-based image preprocessing
-- [ ] TensorRT for neural network inference
-- [ ] Multi-stream processing
-
-**Priority**: LOW
-**Estimated Effort**: 3-4 weeks
-**Hardware Requirement**: NVIDIA GPU
-
-### 5.2 Multi-threading Optimization
-- [ ] Parallel pipeline stages
-- [ ] Thread pool for image processing
-- [ ] Lock-free data structures throughout
-- [ ] CPU affinity optimization
-
-**Priority**: MEDIUM
-**Estimated Effort**: 2 weeks
-
----
-
-## 🌐 Phase 6: Connectivity & Remote Control
-
-### 6.1 Network Streaming
-- [ ] WebRTC video streaming
-- [ ] Remote control via web interface
-- [ ] Multi-client support
-- [ ] Low-latency H.264 encoding
-
-**Priority**: LOW
-**Estimated Effort**: 4-5 weeks
-
-### 6.2 ROS2 Integration
-- [ ] ROS2 bridge nodes
-- [ ] Publish tracking data to ROS topics
-- [ ] Subscribe to external commands
-- [ ] Integration with ROS ecosystem
-
-**Priority**: LOW
-**Estimated Effort**: 2-3 weeks
-
----
-
-## 🎯 Immediate Next Steps (Recommended Order)
-
-### Sprint 1 (Week 1-2): Multi-Object Tracking
-**Goal**: Track multiple objects simultaneously
-
-**Tasks**:
-1. Extend InteractiveTrackerDetector to manage multiple templates
-2. Add UI for selecting multiple ROIs (Shift+Click)
-3. Update Kalman tracker for multi-target
-4. Display all tracked objects with unique IDs
-5. Test with 2-3 objects in frame
-
-**Deliverable**: Demo video tracking 3 different objects
-
----
-
-### Sprint 2 (Week 3-4): Camera Calibration Tool
-**Goal**: Improve 3D position accuracy
-
-**Tasks**:
-1. Create calibration application (separate from main app)
-2. Implement checkerboard detection
-3. Calculate camera matrix and distortion coefficients
-4. Save calibration to YAML
-5. Apply calibration in main app
-
-**Deliverable**: Calibration tool + updated position estimates
-
----
-
-### Sprint 3 (Week 5-6): Recording & Playback
-**Goal**: Enable offline analysis
-
-**Tasks**:
-1. Add record button to UI
-2. Save video + telemetry + tracking data
-3. Implement playback mode
-4. Frame-by-frame navigation
-5. Export functionality
-
-**Deliverable**: Recording system with playback
-
----
-
-### Sprint 4 (Week 7-10): DJI Integration (Optional)
-**Goal**: Deploy on real drone
-
-**Tasks**:
-1. Complete DJI SDK wrapper
-2. Test with DJI Tello (easiest to start)
-3. Implement safety checks
-4. Field testing in open area
-5. Documentation and demo
-
-**Deliverable**: Working drone following system
-
----
-
-## 📈 Success Metrics
-
-### Phase 1 (Current) ✓
-- ✅ Build success on Windows and macOS
-- ✅ Interactive tracking working smoothly
-- ✅ UI professional and responsive
-- ✅ Full pipeline operational
-
-### Phase 2 (Target)
-- Track 3+ objects simultaneously at 30 FPS
-- < 5% tracking loss rate in normal conditions
-- Position accuracy within 10cm at 5m distance
-- 95% test coverage
-
-### Phase 3 (Target)
-- Record/playback with no frame drops
-- Export data in standard formats
-- Complete debug visualization suite
-
-### Phase 4 (Target)
-- Successful outdoor flight tests
-- No safety incidents in 100+ test flights
-- Smooth following behavior in real conditions
-
----
-
-## 💡 Feature Ideas (Backlog)
-
-- Voice commands integration
-- Gesture control for ROI selection
-- Machine learning for tracking improvement
-- Automatic object classification
-- Formation flying (multiple drones)
-- Obstacle detection via depth cameras
-- Mobile app for remote monitoring
-- Cloud telemetry dashboard
-
----
-
-## 📞 Community & Contributions
-
-We welcome contributions! Focus areas:
-- Documentation improvements
-- Example configurations
-- Tutorial videos
-- Bug reports and fixes
-- Performance benchmarks
-- New detector/tracker implementations
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
-
----
-
-**Current Version**: v0.1.0
-**Last Updated**: October 2025
-**Maintainer**: IdanG7
+# Roadmap
+
+Updated 2026-11-26. A milestone is done when its exit checks have been run and recorded in
+`IMPLEMENTATION_STATUS.md`, not when the code is written. Backlog item numbers refer to
+`TECHNICAL_DEBT.md`.
+
+The released version is still **0.1.0**. The version number in `CMakeLists.txt` has not
+been changed, because the release workflow publishes automatically when it changes
+(item 1.13).
+
+## v0.1.1 - Implementation recovery
+
+Goal: a clean checkout builds, the demo tracks something, the documentation is true.
+
+| Work | State |
+|------|-------|
+| Working tree compiles; tests run | Done on Windows / MSVC 2019 |
+| Native tracker is the default; PyTracking optional | Done |
+| Video file replay and headless mode | Done |
+| Modules reachable through headers and factories; duplicates removed | Done |
+| Frame conventions, timestamps, controller and estimator fixes | Done |
+| Safety gate, simulation-only actuation | Done |
+| Audit documents, architecture, safety, hardware research | Done |
+| Webcam and GUI checked by a person on this machine | **Open** (owner: see the checklist in `IMPLEMENTATION_STATUS.md`) |
+| CI green on Windows | **Open** (workflow rewritten, needs a push) |
+| Reproducible dependencies (0.5, 0.7) | **Open** |
+| Decide release automation (1.13), then bump to 0.1.1 | **Open**, owner decision |
+
+Exit checks: `ctest` green locally and in CI on Windows; a person has run the GUI with a
+webcam and with a video file; README commands work from a fresh clone.
+
+## v0.2.0 - Reliable perception framework
+
+| Work | Backlog |
+|------|---------|
+| macOS and Linux builds verified in CI, sanitizer job green | 0.6, 2.8 |
+| Trim OpenCV features, pin vcpkg baseline | 0.7, 2.1 |
+| Camera calibration tool and calibration file; undistortion | 1.12 |
+| Recording and replay of frames + detections + telemetry | 2.11 |
+| PyTracking: worker thread, versioned protocol, POSIX support, or removal | 1.7, 1.8, 1.9 |
+| Tracker evaluation on recorded, non-synthetic clips with ground-truth boxes | new |
+| GUI: scaled video, tracking-state and log panels | 2.5, 3.4 |
+| Format the tree, turn the format check on | 2.10 |
+
+Exit checks: tracking accuracy and loss rate reported on a fixed set of recorded clips;
+all three desktop platforms green in CI.
+
+## v0.3.0 - Simulation and mathematical verification
+
+| Work | Backlog |
+|------|---------|
+| Gimbal and mount model; full attitude in the frame conversions | 1.11 |
+| Kalman process noise scaled by `dt`; documented tuning | 2.3 |
+| Synthetic camera in the simulator (project a simulated target into the image) so the whole loop, perception included, runs closed-loop | new |
+| Fault-injection scenarios: frame drops, latency, target loss, telemetry loss | new |
+| Decide whether the kinematic simulator is enough or PX4 SITL is needed | 3.6 |
+
+Exit checks: closed-loop scenarios with stated error bounds run in CI; every estimator
+has its error model documented and tested.
+
+## v0.4.0 - DJI Mini 2 observation (read-only)
+
+Gated on the feasibility test in `HARDWARE_COMPATIBILITY.md`. Nothing here starts before
+steps 1 to 9 of that test pass on the real phone and aircraft.
+
+| Work | Notes |
+|------|-------|
+| `apps/ios-bridge/`: SDK registration, connection state, video feed, telemetry | Swift, MSDK V4.16.2, device builds only |
+| Versioned telemetry message (source id, sequence, timestamp, validity, measurements, link health) | schema in `protocols/` |
+| Video transport to the desktop | decide after measuring: forward the SDK's H.264 as-is (RTP or framed TCP) and decode on the desktop |
+| Desktop: network frame source and telemetry source behind the existing interfaces | `IFrameSource`, `Telemetry` |
+| Mock bridge that replays a recording, for tests without hardware | |
+| Latency measurement end to end | |
+
+The bridge never sends anything to the aircraft, and the desktop keeps refusing commands
+to non-simulated backends.
+
+## v0.5.0 - Performance and portability
+
+| Work | Backlog |
+|------|---------|
+| `benchmarks/` with a repeatable run and `PERFORMANCE.md` | 3.3 |
+| Profile before optimising; hardware decode / acceleration only where measurements justify it | |
+| Long-run stability (hours) with memory tracking | |
+
+## v1.0.0 - Stable framework
+
+Stable public headers, verified builds on the supported platforms, hardware checklist
+passed and recorded, releases produced by a deliberate, documented step.
+
+## Not planned
+
+- Automated control of a physical aircraft.
+- Undocumented DJI protocols or firmware changes.
+- GPU inference before the CPU pipeline has benchmarks that show the need.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -35,12 +36,14 @@ struct ModuleConfig
 
 struct InputConfig
 {
-  std::string type; // webcam | file | dji
-  int device{0};
-  int width{1280};
+  std::string type{"webcam"}; // webcam | file | stream
+  int device{0};              // webcam index
+  int width{1280};            // requested size (webcam); recorded sources use their own
   int height{720};
-  int fps{30};
-  std::string path; // for file input
+  int fps{30};                // requested rate (webcam) / fallback when a file reports none
+  std::string path;           // file: video path; stream: URL
+  std::optional<bool> mirror; // flip horizontally; default: true for webcam, else false
+  bool loop{false};           // file only: restart at end of file
 };
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -67,6 +70,7 @@ struct SafetyConfig
   double min_alt_m{3.0};
   double max_alt_m{60.0};
   double max_radius_m{120.0};
+  double stale_timeout_s{0.5}; // a target older than this never drives control
 };
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -85,7 +89,12 @@ struct PipelineConfig
 // Config loader
 // ──────────────────────────────────────────────────────────────────────────
 
+// Loads and validates a pipeline config. Throws std::runtime_error whose message names
+// the file, the offending key and the accepted values.
 PipelineConfig load_config(const std::string& yaml_path);
+
+// Same, from YAML text. `origin` is used in error messages.
+PipelineConfig parse_config(const std::string& yaml_text, const std::string& origin);
 
 // ──────────────────────────────────────────────────────────────────────────
 // Helper accessors
@@ -105,6 +114,13 @@ T get_param(const ConfigMap& map, const std::string& key, const T& default_val)
   }
   return default_val;
 }
+
+// Numeric accessors that accept both integer and floating-point YAML values
+// (`kp: [1, 1, 1]` and `kp: [1.0, 1.0, 1.0]` are equivalent). They return nullopt when
+// the key is missing and throw std::runtime_error when it has the wrong type or length.
+std::optional<double> get_number(const ConfigMap& map, const std::string& key);
+std::optional<std::vector<double>> get_numbers(const ConfigMap& map, const std::string& key,
+                                               size_t expected_size);
 
 Eigen::Vector3d get_vec3(const ConfigMap& map, const std::string& key,
                          const Eigen::Vector3d& default_val);

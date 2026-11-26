@@ -1,8 +1,12 @@
-#include "aeroforge/plugin.hpp"
+#include "aeroforge/modules.hpp"
 #include "aeroforge/math.hpp"
+#include <cmath>
+#include <stdexcept>
 #include <spdlog/spdlog.h>
 
 namespace af
+{
+namespace
 {
 
 class KalmanTracker : public ITracker
@@ -17,6 +21,12 @@ public:
 
   std::vector<Detection> update(double dt, const std::vector<Detection>& detections) override
   {
+    if (!std::isfinite(dt) || dt <= 0.0)
+    {
+      // No usable time step: pass measurements through unfiltered rather than corrupt state
+      return detections;
+    }
+
     if (detections.empty())
     {
       // No measurements; just predict
@@ -59,6 +69,8 @@ public:
     return {smoothed};
   }
 
+  void reset() override { initialized_ = false; }
+
   const char* name() const override { return "KalmanTracker"; }
 
 private:
@@ -99,5 +111,16 @@ private:
   bool initialized_{false};
   Kalman2D filter_{q_, r_};
 };
+
+} // namespace
+
+std::unique_ptr<ITracker> make_kalman_tracker(double q, double r)
+{
+  if (!std::isfinite(q) || !std::isfinite(r) || q < 0.0 || r <= 0.0)
+  {
+    throw std::invalid_argument("kalman: q must be >= 0 and r must be > 0");
+  }
+  return std::make_unique<KalmanTracker>(q, r);
+}
 
 } // namespace af

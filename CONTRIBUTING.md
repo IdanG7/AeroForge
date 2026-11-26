@@ -124,8 +124,8 @@ See [SECURITY.md](SECURITY.md) for details.
 ## Getting Help
 
 - **Discord**: [Join our server](https://discord.gg/YOUR_INVITE)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/aeroforge/discussions)
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/aeroforge/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/IdanG7/AeroForge/discussions)
+- **Issues**: [GitHub Issues](https://github.com/IdanG7/AeroForge/issues)
 
 ---
 

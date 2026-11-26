@@ -11,7 +11,7 @@ pipeline:
     - name: detector
       type: aruco
       params:
-        dict_id: 10  # DICT_4X4_50
+        dict_id: 0  # cv::aruco::DICT_4X4_50
 
     - name: tracker
       type: kalman

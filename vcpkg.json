@@ -2,7 +2,15 @@
   "name": "aeroforge",
   "version-string": "0.1.0",
   "dependencies": [
-    "opencv4",
+    {
+      "name": "opencv4",
+      "features": [
+        "contrib",
+        "dnn",
+        "eigen",
+        "nonfree"
+      ]
+    },
     {
       "name": "imgui",
       "features": ["glfw-binding", "opengl3-binding"]
@@ -12,6 +20,7 @@
     "fmt",
     "spdlog",
     "catch2",
-    "eigen3"
+    "eigen3",
+    "nlohmann-json"
   ]
 }

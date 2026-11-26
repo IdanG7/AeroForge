@@ -29,6 +29,8 @@ FramePool::FramePool(size_t count, int width, int height, int type)
 {
 }
 
+FramePool::~FramePool() = default;
+
 std::optional<Frame> FramePool::acquire()
 {
   std::lock_guard<std::mutex> lock(impl_->mutex_);

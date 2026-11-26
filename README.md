@@ -1,235 +1,143 @@
 # AeroForge
 
-**Professional-grade, real-time vision + control framework for drone tracking applications**
+A C++20 framework for real-time visual tracking, range estimation and follow-control
+research, with a built-in simulator. Version 0.1.0.
 
-[![CI](https://github.com/YOUR_USERNAME/aeroforge/workflows/CI/badge.svg)](https://github.com/YOUR_USERNAME/aeroforge/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
----
+**What it is today:** a desktop application that tracks a target you select in a webcam
+feed or a recorded video, estimates where it is relative to the camera, and computes
+follow commands for a *simulated* vehicle.
 
-## Overview
+**What it is not:** it does not fly anything. There is no connection to a real aircraft
+in this repository, and the command path refuses any vehicle that is not a simulator.
+See [docs/SAFETY.md](docs/SAFETY.md).
 
-AeroForge is a cross-platform (macOS, Windows, Linux) C++20 framework for building vision-based drone control applications. It provides a modular, extensible pipeline for real-time object detection, tracking, pose estimation, and control with strict safety mechanisms.
+The honest state of every subsystem, with the evidence, is in
+[docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
-**Key Features:**
-- 🎯 **Interactive Object Selection**: Click and drag to track ANY object in real-time
-- 🚀 High-performance template matching tracker (no OpenCV contrib needed)
-- 📊 Complete pipeline: Detection → Kalman tracking → 3D estimation → PID control
-- 🎨 **Professional redesigned UI** with organized panels and real-time visualization
-- 🛡️ Safety-first: hold-to-enable, e-stop, geofence, speed limits
-- 📹 ImGui HUD with FPS, telemetry, 3D position, and velocity command displays
-- ⚙️ YAML-based configuration (no recompile needed)
-- 🧪 Unit & integration tests (Catch2)
-- 🔌 DJI SDK integration (optional, gated by build flag)
+## Features
 
----
+- Click-and-drag target selection, tracked by a CPU tracker (Kalman prediction, template
+  matching and ORB features). No GPU and no Python required.
+- Colour-blob and ArUco marker detectors.
+- Webcam input and video file replay with deterministic timestamps.
+- Range from apparent size or from a ground-plane intersection.
+- PID follow controller, exercised closed-loop against a kinematic simulator.
+- A single safety gate: hold-to-enable or toggle, latched e-stop, speed limit, geofence,
+  stale-target rejection, simulation-only actuation.
+- ImGui window with video, tracking state, per-stage timings, telemetry and safety state.
+- Headless mode with a JSON report, used by the automated tests.
+- YAML configuration with validation and readable error messages.
+- Optional deep-learning tracker through a Python subprocess (PyTracking, Windows only).
 
-## Quick Start
+## Quick start
 
-### Prerequisites
-
-- **C++20 compiler**: MSVC 2022, Clang 14+, or GCC 11+
-- **CMake** 3.21+
-- **vcpkg** (managed by the project)
-- **Webcam** for testing
-
-### Build (Windows)
+Full instructions, platform status and troubleshooting:
+[BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md). The first build compiles all dependencies
+and takes 30 to 60 minutes.
 
 ```powershell
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/aeroforge.git
-cd aeroforge
+git clone https://github.com/IdanG7/AeroForge.git
+cd AeroForge
+git clone https://github.com/microsoft/vcpkg.git vcpkg
+git -C vcpkg checkout adf54cf279585302d29f6789b85f56a9c4b7c75b
+.\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
-# Bootstrap vcpkg
-.\vcpkg\bootstrap-vcpkg.bat
-
-# Configure and build
 cmake --preset win-rel
-cmake --build --preset win-rel -j
-
-# Run demo viewer
-.\build\win-rel\bin\demo_viewer.exe
+cmake --build --preset win-rel --parallel
+ctest --preset win-tests
 ```
 
-### Build (macOS)
+On macOS and Linux use `./vcpkg/bootstrap-vcpkg.sh` and the `mac-rel` / `linux-rel`
+presets. Windows with Visual Studio 2022 is the only configuration verified for this
+revision.
 
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/aeroforge.git
-cd aeroforge
+Run it:
 
-# Bootstrap vcpkg
-./vcpkg/bootstrap-vcpkg.sh
+```powershell
+# Webcam
+.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --config configs\track_interactive.yml
 
-# Configure and build
-cmake --preset mac-rel
-cmake --build --preset mac-rel -j
+# Recorded video
+.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --config configs\track_interactive.yml --input clip.mp4
 
-# Run demo viewer
-./build/mac-rel/bin/demo_viewer
+# No window, JSON report on stdout
+.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --headless --config configs\track_interactive.yml --input clip.avi --roi 100,120,64,64
 ```
 
-### Run AeroForge-Track
+Controls in the window:
 
-```bash
-# Windows
-.\build\win-rel\bin\aeroforge-track.exe --config configs\track_colorball.yml
-
-# macOS/Linux
-./build/mac-rel/bin/aeroforge-track --config configs/track_colorball.yml
-```
-
-**Controls:**
-- **Click & Drag**: Select object to track on camera feed
-- **R**: Reset tracking and select new target
-- **F**: Toggle safety enable/disable (enables velocity commands)
-- **SPACE**: Emergency stop (hold mode)
-- **ESC**: Exit application
-
----
+| Input | Action |
+|-------|--------|
+| Drag on the image | Select a target (up to five) |
+| R | Drop all targets |
+| F (hold) | Enable simulated control. Set `safety.require_hold_to_enable: false` to make F a toggle |
+| SPACE | E-stop (latched) |
+| ESC | Exit |
 
 ## Configuration
 
-AeroForge uses YAML for runtime configuration. Example (`configs/track_colorball.yml`):
+`configs/track_interactive.yml` is the commented reference. In short:
 
 ```yaml
 pipeline:
   input:
-    type: webcam
+    type: webcam            # webcam | file | stream
     device: 0
     size: { width: 1280, height: 720, fps: 30 }
-
   modules:
-    - name: detector
-      type: colorball
-      params:
-        hsv_lo: [30, 120, 80]   # Green ball
-        hsv_hi: [90, 255, 255]
-        min_area_px: 200
-
-    - name: tracker
-      type: kalman
-      params: { q: 0.02, r: 0.20 }
-
+    - { name: detector, type: interactive }          # or colorball, aruco, pytracking
+    - { name: tracker, type: kalman, params: { q: 0.02, r: 0.20 } }
     - name: estimator
-      type: size_based
-      params:
-        object_diameter_m: 0.20
-        fx: 920.0; fy: 920.0; cx: 640.0; cy: 360.0
-
+      type: size_based                               # or ground_plane
+      params: { object_diameter_m: 0.20, fx: 920, fy: 920, cx: 640, cy: 360 }
     - name: controller
       type: pid_velocity
       params:
-        desired_offset_m: [-3.0, 0.0, 0.0]  # 3m behind target
+        desired_offset_m: [-3, 0, 0]                 # 3 m behind the target
         kp: [0.8, 0.8, 0.6]
         kd: [0.1, 0.1, 0.08]
         max_speed_mps: 3.0
-
 safety:
   require_hold_to_enable: true
-  e_stop_key: "SPACE"
-  limits:
-    max_speed_mps: 6.0
-    min_follow_dist_m: 2.0
-    max_follow_dist_m: 10.0
-  geofence:
-    min_alt_m: 3.0
-    max_alt_m: 60.0
-    max_radius_m: 120.0
+  stale_timeout_s: 0.5
+  limits: { max_speed_mps: 6.0, min_follow_dist_m: 2.0, max_follow_dist_m: 10.0 }
+  geofence: { min_alt_m: 3.0, max_alt_m: 60.0, max_radius_m: 120.0 }
 ```
 
----
+`object_diameter_m` must be the real size of the object you track. Range from size is
+only as good as that number.
 
-## Architecture
+## Documentation
 
-```
-AeroForge Core
-  ├─ Capture (webcam/RTSP/DJI)
-  │   └─ SPSC FrameRingBuffer
-  ├─ Pipeline (config-driven)
-  │   ├─ Detector (ColorBall / ArUco / YOLO*)
-  │   ├─ Tracker (Kalman / SORT*)
-  │   ├─ Estimator (size-based / ground-plane)
-  │   ├─ Controller (PID velocity)
-  │   └─ Sinks (HUD, recorder, telemetry)
-  ├─ Flight Interface (IDrone → DJI | Mock)
-  ├─ Safety Manager (hold-to-enable, e-stop, geofence)
-  └─ UI/HUD (ImGui)
+| Document | Contents |
+|----------|----------|
+| [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | What is verified, unverified, broken or missing, with test evidence |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow, libraries, frames, timestamps, IPC protocol |
+| [docs/SAFETY.md](docs/SAFETY.md) | What the safety gate does and what is not covered |
+| [docs/TECHNICAL_DEBT.md](docs/TECHNICAL_DEBT.md) | Prioritised backlog |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones and their exit checks |
+| [docs/HARDWARE_COMPATIBILITY.md](docs/HARDWARE_COMPATIBILITY.md) | DJI Mini 2 / iOS SDK research and the bench test plan (nothing tested on hardware yet) |
+| [docs/adr/](docs/adr/) | Design decisions |
 
-*optional/future
-```
+## Hardware
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
-
----
-
-## Safety Disclaimer
-
-⚠️ **IMPORTANT**: This software is provided AS-IS for research and development purposes. When using with real drones:
-
-1. **Always maintain visual line of sight** with a human pilot holding the RC transmitter.
-2. **Test in open areas** away from people, buildings, and obstacles.
-3. **Start with low speeds** and gradually increase gains.
-4. **Use the mock drone** for initial testing before connecting to real hardware.
-5. **Comply with local UAV regulations** (FAA Part 107, etc.).
-
-The authors are NOT liable for any damage, injury, or legal consequences. **Fly responsibly.**
-
----
-
-## Testing
-
-```bash
-# Run all tests
-ctest --preset mac-tests --output-on-failure  # macOS
-ctest --preset win-tests --output-on-failure  # Windows
-
-# Run specific test
-./build/mac-rel/tests/unit/test_ring_buffer
-```
-
----
-
-## Roadmap
-
-- [x] **v0.1.0**: Core framework, webcam, ColorBall/ArUco, PID, mock drone
-- [ ] **v0.2.0**: TensorRT YOLO detector, Jetson Nano support, CUDA acceleration
-- [ ] **v0.3.0**: Obstacle avoidance, ROS2 bridge, WebRTC streaming
-- [ ] **v0.4.0**: Plugin marketplace, Python bindings (pybind11)
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed planning.
-
----
+No aircraft is supported. The first planned hardware target is read-only video and
+telemetry from an original DJI Mini 2 through an iPhone; that work is at the research
+stage. If you fly anything near this software, a human pilot flies it, within your local
+rules, and AeroForge only watches.
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to branch (`git push origin feat/amazing-feature`)
-5. Open a Pull Request
-
-**Code of Conduct**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 
-This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
+MIT, see [LICENSE](LICENSE).
 
----
-
-## Acknowledgments
-
-- [OpenCV](https://opencv.org/) for vision primitives
-- [Eigen](https://eigen.tuxfamily.org/) for linear algebra
-- [ImGui](https://github.com/ocornut/imgui) for HUD rendering
-- [Catch2](https://github.com/catchorg/Catch2) for testing
-- [spdlog](https://github.com/gabime/spdlog) for logging
-- [yaml-cpp](https://github.com/jbeder/yaml-cpp) for config parsing
-
----
-
-**Made with ❤️ for the drone developer community**
+Built on [OpenCV](https://opencv.org/), [Eigen](https://eigen.tuxfamily.org/),
+[Dear ImGui](https://github.com/ocornut/imgui), [GLFW](https://www.glfw.org/),
+[yaml-cpp](https://github.com/jbeder/yaml-cpp), [spdlog](https://github.com/gabime/spdlog),
+[fmt](https://github.com/fmtlib/fmt), [nlohmann/json](https://github.com/nlohmann/json) and
+[Catch2](https://github.com/catchorg/Catch2).

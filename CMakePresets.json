@@ -1,68 +1,122 @@
 {
   "version": 4,
+  "cmakeMinimumRequired": { "major": 3, "minor": 23, "patch": 0 },
   "configurePresets": [
     {
-      "name": "mac-rel",
-      "generator": "Ninja",
-      "binaryDir": "build/mac-rel",
+      "name": "base",
+      "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "AEROFORGE_WITH_DJI": "OFF",
         "AEROFORGE_WITH_IMGUI": "ON"
-      }
-    },
-    {
-      "name": "mac-debug",
-      "generator": "Ninja",
-      "binaryDir": "build/mac-debug",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-        "AEROFORGE_WITH_DJI": "OFF",
-        "AEROFORGE_WITH_IMGUI": "ON",
-        "AEROFORGE_ENABLE_SANITIZERS": "ON"
       }
     },
     {
       "name": "win-rel",
-      "generator": "Ninja",
+      "displayName": "Windows x64, Visual Studio (default generator), RelWithDebInfo",
+      "inherits": "base",
       "binaryDir": "build/win-rel",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-        "AEROFORGE_WITH_DJI": "OFF",
-        "AEROFORGE_WITH_IMGUI": "ON"
-      }
+      "architecture": { "value": "x64", "strategy": "set" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },
     {
       "name": "win-debug",
-      "generator": "Ninja",
+      "displayName": "Windows x64, Visual Studio (default generator), Debug",
+      "inherits": "base",
       "binaryDir": "build/win-debug",
+      "architecture": { "value": "x64", "strategy": "set" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "mac-rel",
+      "displayName": "macOS, Ninja, RelWithDebInfo",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "build/mac-rel",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    },
+    {
+      "name": "mac-debug",
+      "displayName": "macOS, Ninja, Debug with ASan + UBSan",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "build/mac-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-        "AEROFORGE_WITH_DJI": "OFF",
-        "AEROFORGE_WITH_IMGUI": "ON"
-      }
+        "AEROFORGE_ENABLE_SANITIZERS": "ON"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    },
+    {
+      "name": "linux-rel",
+      "displayName": "Linux, Ninja, RelWithDebInfo",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "build/linux-rel",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux, Ninja, Debug with ASan + UBSan",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "build/linux-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "AEROFORGE_ENABLE_SANITIZERS": "ON"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux-headless",
+      "displayName": "Linux, Ninja, no GUI (for CI and servers)",
+      "inherits": "linux-rel",
+      "binaryDir": "build/linux-headless",
+      "cacheVariables": { "AEROFORGE_WITH_IMGUI": "OFF" }
     }
   ],
   "buildPresets": [
+    { "name": "win-rel", "configurePreset": "win-rel", "configuration": "RelWithDebInfo" },
+    { "name": "win-debug", "configurePreset": "win-debug", "configuration": "Debug" },
     { "name": "mac-rel", "configurePreset": "mac-rel" },
     { "name": "mac-debug", "configurePreset": "mac-debug" },
-    { "name": "win-rel", "configurePreset": "win-rel" },
-    { "name": "win-debug", "configurePreset": "win-debug" }
+    { "name": "linux-rel", "configurePreset": "linux-rel" },
+    { "name": "linux-debug", "configurePreset": "linux-debug" },
+    { "name": "linux-headless", "configurePreset": "linux-headless" }
   ],
   "testPresets": [
     {
-      "name": "mac-tests",
-      "configurePreset": "mac-rel",
-      "output": {"outputOnFailure": true}
-    },
-    {
       "name": "win-tests",
       "configurePreset": "win-rel",
-      "output": {"outputOnFailure": true}
+      "configuration": "RelWithDebInfo",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "win-debug-tests",
+      "configurePreset": "win-debug",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    { "name": "mac-tests", "configurePreset": "mac-rel", "output": { "outputOnFailure": true } },
+    {
+      "name": "mac-debug-tests",
+      "configurePreset": "mac-debug",
+      "output": { "outputOnFailure": true }
+    },
+    { "name": "linux-tests", "configurePreset": "linux-rel", "output": { "outputOnFailure": true } },
+    {
+      "name": "linux-debug-tests",
+      "configurePreset": "linux-debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "linux-headless-tests",
+      "configurePreset": "linux-headless",
+      "output": { "outputOnFailure": true }
     }
   ]
 }
