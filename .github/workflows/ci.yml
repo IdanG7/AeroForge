@@ -10,8 +10,10 @@ name: CI
 on:
   push:
     branches: [master, main, develop]
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
     branches: [master, main, develop]
+    paths-ignore: ['**.md', 'docs/**']
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -58,20 +60,47 @@ jobs:
           sudo apt-get install -y ninja-build pkg-config autoconf autoconf-archive automake libtool libltdl-dev bison \
             python3-jinja2 nasm \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
-            libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev libgtk-3-dev
+            libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev
 
       - name: Install build tools (macOS)
         if: runner.os == 'macOS'
         run: brew install ninja pkg-config nasm
 
-      - name: Set up vcpkg (with binary cache)
-        uses: lukka/run-vcpkg@v11
+      # Dependencies are built once per platform and manifest, then restored as prebuilt
+      # packages. vcpkg decides per package whether a cached build still matches, so a
+      # stale cache is only slower, never wrong.
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
-          vcpkgDirectory: ${{ github.workspace }}/vcpkg
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-
+
+      - name: Set up vcpkg
+        shell: bash
+        run: |
+          mkdir -p .vcpkg-cache vcpkg
+          cd vcpkg
+          git init -q
+          git fetch -q --depth 1 https://github.com/microsoft/vcpkg.git "$VCPKG_COMMIT"
+          git checkout -q FETCH_HEAD
+          if [ "$RUNNER_OS" = "Windows" ]; then ./bootstrap-vcpkg.bat -disableMetrics; else ./bootstrap-vcpkg.sh -disableMetrics; fi
+          echo "VCPKG_BINARY_SOURCES=clear;files,$(cd ../.vcpkg-cache && pwd -W 2>/dev/null || pwd),readwrite" >> "$GITHUB_ENV"
 
       - name: Configure
+        id: configure
         run: cmake --preset ${{ matrix.preset }}
+
+      # Saved as soon as the dependencies are installed, so a later compile or test failure
+      # does not throw the dependency build away
+      - name: Save vcpkg binary cache
+        if: always() && steps.configure.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }} --parallel

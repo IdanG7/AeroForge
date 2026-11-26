@@ -1,9 +1,9 @@
 name: Build and Release
 
+# Release packaging only. Pull requests and other branches are built and tested by ci.yml;
+# running this workflow there as well doubled the CI time.
 on:
   push:
-    branches: [ master, main, develop ]
-  pull_request:
     branches: [ master, main ]
   workflow_dispatch:
     inputs:

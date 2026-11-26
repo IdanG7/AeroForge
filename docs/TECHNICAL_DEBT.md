@@ -46,7 +46,7 @@ maintainability. **P3** enhancements.
 
 | # | Item |
 |---|------|
-| 2.1 | `vcpkg.json` asks OpenCV for `contrib`, `nonfree` and `dnn`. Nothing uses them any more. They pull in Tesseract, HDF5, Protobuf and roughly triple the dependency build. Remove after confirming no local experiment needs them (costs one full rebuild) |
+| 2.1 | OpenCV features: fixed. `vcpkg.json` now asks only for what the code uses (`calib3d`, `fs`, `intrinsics`, `jpeg`, `png`, `thread`, plus `msmf` and `dshow` on Windows). `contrib`, `nonfree`, `dnn` and the default GTK/highgui features are gone, which cut the Linux dependency set from 72 packages to about 23 |
 | 2.2 | `SpscRingBuffer` and `FramePool` are tested but unused. Either use them for an async capture stage (see 1.8) and run the two-thread test under TSan on Linux/macOS, or delete them |
 | 2.3 | Kalman process noise is `q·I` per step, not scaled by `dt`; smoothing strength changes with frame rate. Position and velocity noise share one value |
 | 2.4 | `KalmanTracker` follows only the first detection; the native tracker can report five |
@@ -54,7 +54,7 @@ maintainability. **P3** enhancements.
 | 2.6 | `HUD::is_key_pressed` returns key level, same as `is_key_down`. The application does its own edge detection. Fix the HUD API or remove the duplicate |
 | 2.7 | Template tracker constants (search window, thresholds, 45-frame loss) are hard-coded; its motion model works in pixels per frame, so behaviour changes with frame rate |
 | 2.8 | No sanitizer run has been done. Presets exist for Clang/GCC (`*-debug`); MSVC `/fsanitize=address` is not wired up |
-| 2.9 | Two overlapping workflows (`ci.yml`, `build.yml`) build the same thing on every push; `build.yml` clones vcpkg at HEAD instead of a pinned commit |
+| 2.9 | Workflows: `build.yml` no longer runs on pull requests (it duplicated `ci.yml`). Still open: it clones vcpkg at HEAD instead of the pinned commit, and its cache step caches directories that manifest mode does not use |
 | 2.10 | `clang-format`: fixed, all sources formatted with clang-format 18.1.8 (the version CI pins) |
 | 2.11 | No recording: frames, detections and telemetry cannot be saved for replay. Replay of plain video exists |
 | 2.12 | Root directory clutter (`PROGRESS.md`, `SESSION_SUMMARY.md`, `NEXT_STEPS.md`, `FILE_TREE.txt`): fixed, deleted on `master` |

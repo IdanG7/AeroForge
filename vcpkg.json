@@ -4,16 +4,30 @@
   "dependencies": [
     {
       "name": "opencv4",
+      "default-features": false,
       "features": [
-        "contrib",
-        "dnn",
-        "eigen",
-        "nonfree"
+        "calib3d",
+        "fs",
+        "intrinsics",
+        "jpeg",
+        "png",
+        "thread",
+        {
+          "name": "dshow",
+          "platform": "windows"
+        },
+        {
+          "name": "msmf",
+          "platform": "windows"
+        }
       ]
     },
     {
       "name": "imgui",
-      "features": ["glfw-binding", "opengl3-binding"]
+      "features": [
+        "glfw-binding",
+        "opengl3-binding"
+      ]
     },
     "glfw3",
     "yaml-cpp",
