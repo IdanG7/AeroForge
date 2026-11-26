@@ -55,7 +55,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config autoconf automake libtool bison \
+          sudo apt-get install -y ninja-build pkg-config autoconf autoconf-archive automake libtool libltdl-dev bison \
             python3-jinja2 nasm \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
             libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev libgtk-3-dev

@@ -23,7 +23,7 @@ builds reuse the result.
 - Linux (Debian/Ubuntu): 
   ```bash
   sudo apt-get install -y build-essential cmake ninja-build git pkg-config nasm \
-    autoconf automake libtool bison python3-jinja2 \
+    autoconf autoconf-archive automake libtool libltdl-dev bison python3-jinja2 \
     libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
     libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev libgtk-3-dev
   ```
