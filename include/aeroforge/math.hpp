@@ -16,6 +16,9 @@ public:
   PIDController(const Eigen::Vector3d& kp, const Eigen::Vector3d& ki, const Eigen::Vector3d& kd,
                 double max_output);
 
+  // `dt` must be finite and > 0. With an invalid `dt` the integral and derivative terms
+  // are skipped for this call (P + previous I only). A non-finite `error` returns zero
+  // and leaves the controller state untouched.
   Eigen::Vector3d compute(const Eigen::Vector3d& error, double dt);
   void reset();
 
@@ -28,6 +31,22 @@ private:
   Eigen::Vector3d prev_error_{0, 0, 0};
   bool first_call_{true};
 };
+
+// ──────────────────────────────────────────────────────────────────────────
+// Coordinate frames
+// ──────────────────────────────────────────────────────────────────────────
+//
+// camera: X right, Y down, Z forward (optical axis)   - OpenCV convention
+// body:   X forward, Y right, Z down (FRD)            - aircraft convention
+// NED:    X north, Y east, Z down                     - local navigation frame
+//
+// camera_to_body assumes a forward-looking camera with no mount rotation (gimbal level
+// and aligned with the airframe). Gimbal pitch is NOT compensated here.
+
+Eigen::Vector3d camera_to_body(const Eigen::Vector3d& v_cam);
+
+// Rotate a body-frame vector into NED using heading only (roll and pitch assumed zero).
+Eigen::Vector3d body_to_ned(const Eigen::Vector3d& v_body, double yaw_deg);
 
 // ──────────────────────────────────────────────────────────────────────────
 // Kalman Filter (1D or 3D constant velocity model)

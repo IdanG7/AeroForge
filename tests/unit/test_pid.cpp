@@ -1,6 +1,8 @@
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_approx.hpp>
 #include "aeroforge/math.hpp"
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <limits>
 
 using Catch::Approx;
 
@@ -46,5 +48,50 @@ TEST_CASE("PIDController basic behavior", "[math]")
     // After reset, should behave as if first call
     Eigen::Vector3d output = pid.compute(error, 0.1);
     REQUIRE(output.x() == Approx(5.0));
+  }
+}
+
+TEST_CASE("PIDController rejects invalid inputs", "[math][safety]")
+{
+  af::PIDController pid(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(0.5, 0.5, 0.5),
+                        Eigen::Vector3d(0.1, 0.1, 0.1), 10.0);
+
+  SECTION("Zero dt yields a finite output")
+  {
+    pid.compute(Eigen::Vector3d(1, 1, 1), 0.1);
+    Eigen::Vector3d out = pid.compute(Eigen::Vector3d(2, 2, 2), 0.0);
+    REQUIRE(out.allFinite());
+  }
+
+  SECTION("Negative dt does not integrate backwards")
+  {
+    Eigen::Vector3d a = pid.compute(Eigen::Vector3d(1, 1, 1), 0.1);
+    Eigen::Vector3d b = pid.compute(Eigen::Vector3d(1, 1, 1), -5.0);
+    REQUIRE(b.allFinite());
+    REQUIRE(b.x() == Approx(a.x()));
+  }
+
+  SECTION("Non-finite error produces zero output and does not poison state")
+  {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    Eigen::Vector3d out = pid.compute(Eigen::Vector3d(nan, 1, 1), 0.1);
+    REQUIRE(out.isZero());
+    Eigen::Vector3d next = pid.compute(Eigen::Vector3d(1, 1, 1), 0.1);
+    REQUIRE(next.allFinite());
+  }
+
+  SECTION("Integral term is limited so the output recovers after saturation")
+  {
+    for (int i = 0; i < 1000; ++i)
+    {
+      pid.compute(Eigen::Vector3d(100, 100, 100), 0.1);
+    }
+    // After the error changes sign, the output must leave saturation quickly.
+    Eigen::Vector3d out;
+    for (int i = 0; i < 50; ++i)
+    {
+      out = pid.compute(Eigen::Vector3d(-1, -1, -1), 0.1);
+    }
+    REQUIRE(out.x() < 10.0);
   }
 }

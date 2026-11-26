@@ -8,11 +8,7 @@ add_executable(aeroforge-track
 
 target_link_libraries(aeroforge-track
   PRIVATE
-    af_core
-    af_vision
-    af_tracking
-    af_estimate
-    af_control
+    af_pipeline
 )
 
 if(AEROFORGE_WITH_IMGUI)

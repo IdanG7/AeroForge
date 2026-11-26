@@ -53,3 +53,12 @@ CTestTestfile.cmake
 
 .claude/NUL
 imgui.ini
+
+# Python environments and caches (PyTracking bridge)
+python/venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Local run output
+tracking_performance.csv

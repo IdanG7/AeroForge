@@ -1,66 +1,132 @@
 name: CI
 
+# Build and test on every push and pull request. No tagging, no releases: publishing
+# lives in build.yml.
+#
+# Status: the Windows job mirrors the configuration verified locally (see
+# docs/IMPLEMENTATION_STATUS.md). The macOS and Linux jobs have not produced a green run
+# yet; do not list those platforms as supported until they have.
+
 on:
   push:
-    branches: [main, develop]
+    branches: [master, main, develop]
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
-    branches: [main, develop]
+    branches: [master, main, develop]
+    paths-ignore: ['**.md', 'docs/**']
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # vcpkg commit the dependency set was last built and tested with
+  VCPKG_COMMIT: adf54cf279585302d29f6789b85f56a9c4b7c75b
 
 jobs:
   build-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
         include:
-          - os: macos-latest
-            preset: mac-rel
-            test_preset: mac-tests
-          - os: windows-latest
+          - name: Windows x64
+            os: windows-latest
             preset: win-rel
             test_preset: win-tests
-
-    runs-on: ${{ matrix.os }}
+          - name: macOS arm64
+            os: macos-latest
+            preset: mac-rel
+            test_preset: mac-tests
+          - name: Linux x64 (headless)
+            os: ubuntu-latest
+            preset: linux-headless
+            test_preset: linux-headless-tests
+          - name: Linux x64 (ASan + UBSan)
+            os: ubuntu-latest
+            preset: linux-debug
+            test_preset: linux-debug-tests
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: 'c8696863d371ab7f46e213d8f5ca923c4aef2a00'
-          vcpkgJsonGlob: 'vcpkg.json'
-          appendedCacheKey: '${{ runner.os }}'
+      - name: Install system packages (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config autoconf autoconf-archive automake libtool libltdl-dev bison \
+            python3-jinja2 nasm \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+            libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev
 
-      - name: Install Ninja (macOS)
+      - name: Install build tools (macOS)
         if: runner.os == 'macOS'
-        run: brew install ninja
+        run: brew install ninja pkg-config nasm
 
-      - name: Install Ninja (Windows)
-        if: runner.os == 'Windows'
-        run: choco install ninja
+      # Dependencies are built once per platform and manifest, then restored as prebuilt
+      # packages. vcpkg decides per package whether a cached build still matches, so a
+      # stale cache is only slower, never wrong.
+      # The runner image version is part of the key: vcpkg only reuses a package built with
+      # the same compiler and tools, and GitHub rolls out new images gradually, so two runs
+      # minutes apart can land on different images.
+      - name: Identify runner image
+        id: image
+        shell: bash
+        run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
-      - name: Configure CMake
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-${{ steps.image.outputs.version }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-
+
+      - name: Set up vcpkg
+        shell: bash
+        run: |
+          mkdir -p .vcpkg-cache vcpkg
+          cd vcpkg
+          git init -q
+          git fetch -q --depth 1 https://github.com/microsoft/vcpkg.git "$VCPKG_COMMIT"
+          git checkout -q FETCH_HEAD
+          if [ "$RUNNER_OS" = "Windows" ]; then ./bootstrap-vcpkg.bat -disableMetrics; else ./bootstrap-vcpkg.sh -disableMetrics; fi
+          echo "VCPKG_BINARY_SOURCES=clear;files,$(cd ../.vcpkg-cache && pwd -W 2>/dev/null || pwd),readwrite" >> "$GITHUB_ENV"
+
+      - name: Configure
+        id: configure
         run: cmake --preset ${{ matrix.preset }}
 
+      # Saved as soon as the dependencies are installed, so a later compile or test failure
+      # does not throw the dependency build away
+      - name: Save vcpkg binary cache
+        if: always() && steps.configure.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
+
       - name: Build
-        run: cmake --build --preset ${{ matrix.preset }} -j
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
 
-      - name: Run tests
-        run: ctest --preset ${{ matrix.test_preset }} --output-on-failure
+      - name: Test
+        run: ctest --preset ${{ matrix.test_preset }} --timeout 120
 
-  lint:
+  format:
+    name: clang-format
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format-14
+      - name: Install clang-format 18
+        run: sudo apt-get update && sudo apt-get install -y clang-format-18
 
       - name: Check formatting
         run: |
-          find include src apps tests -name "*.cpp" -o -name "*.hpp" -o -name "*.h" | \
-          xargs clang-format-14 --dry-run --Werror
+          find include src apps tests \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) -print0 \
+            | xargs -0 clang-format-18 --dry-run --Werror

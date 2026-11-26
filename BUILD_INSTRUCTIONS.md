@@ -1,353 +1,149 @@
-# AeroForge Build Instructions
+# Build instructions
 
-Complete guide for building AeroForge from source on Windows, macOS, and Linux.
+| Platform | Compiler | State |
+|----------|----------|-------|
+| Windows 11 x64 | Visual Studio 2022 (MSVC 14.44) | **Verified** 2026-11-26: builds, 38/38 tests pass |
+| Windows x64 | Visual Studio 2019 | Fails at link time when a newer Visual Studio is also installed (see Troubleshooting) |
+| macOS arm64 / x86-64 | Apple Clang | Presets provided, **not verified** since the October 2025 refactor |
+| Linux x64 | GCC / Clang | Presets provided, **never verified** |
 
----
+"Not verified" means nobody has built this revision there. Please report what happens.
 
-## Table of Contents
+The first configure builds every dependency from source through vcpkg. With the current
+`vcpkg.json` (OpenCV with contrib) expect 30 to 60 minutes and several GB of disk. Later
+builds reuse the result.
 
-1. [Prerequisites](#prerequisites)
-2. [Windows Build](#windows-build)
-3. [macOS Build](#macos-build)
-4. [Linux Build](#linux-build)
-5. [Build Options](#build-options)
-6. [Troubleshooting](#troubleshooting)
+## Requirements
 
----
-
-## Prerequisites
-
-### All Platforms
-
-- **CMake** 3.21 or newer
-- **Git** (for cloning and vcpkg submodules)
-- **C++20 compiler**:
-  - Windows: MSVC 2022 (Visual Studio 17.0+)
-  - macOS: Clang 14+ (Xcode 14+)
-  - Linux: GCC 11+ or Clang 14+
-
-### Windows-Specific
-
-- **Visual Studio 2022** with "Desktop development with C++" workload
-- **Ninja** (optional but recommended for faster builds)
-  ```powershell
-  choco install ninja
-  ```
-- **Git for Windows** or **GitHub Desktop**
-
-### macOS-Specific
-
-- **Xcode Command Line Tools**:
+- CMake 3.23 or newer
+- Git
+- A C++20 compiler (see table)
+- Windows: Visual Studio with the "Desktop development with C++" workload
+- macOS: Xcode command line tools, `brew install ninja pkg-config nasm`
+- Linux (Debian/Ubuntu): 
   ```bash
-  xcode-select --install
-  ```
-- **Homebrew** (for Ninja):
-  ```bash
-  brew install ninja
+  sudo apt-get install -y build-essential cmake ninja-build git pkg-config nasm \
+    autoconf autoconf-archive automake libtool libltdl-dev bison python3-jinja2 \
+    libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+    libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev libgtk-3-dev
   ```
 
-### Linux-Specific (Ubuntu/Debian)
+No Python, GPU or DJI SDK is needed.
+
+## 1. Get the source and vcpkg
+
+vcpkg is not part of the repository. Clone it into `vcpkg/` (ignored by Git) at the commit
+the dependencies were last tested with:
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential cmake ninja-build git \
-  libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
-  libgl1-mesa-dev libglu1-mesa-dev
+git clone https://github.com/IdanG7/AeroForge.git
+cd AeroForge
+git clone https://github.com/microsoft/vcpkg.git vcpkg
+git -C vcpkg checkout adf54cf279585302d29f6789b85f56a9c4b7c75b
 ```
 
-For Fedora/RHEL:
+Then bootstrap it:
+
+```powershell
+.\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+```
+
 ```bash
-sudo dnf install -y cmake ninja-build git gcc-c++ \
-  libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel \
-  mesa-libGL-devel mesa-libGLU-devel
+./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 ```
 
----
+## 2. Configure, build, test
 
-## Windows Build
-
-### Step 1: Clone Repository
-
-```powershell
-git clone https://github.com/YOUR_USERNAME/aeroforge.git
-cd aeroforge
-git submodule update --init --recursive
-```
-
-### Step 2: Bootstrap vcpkg
-
-```powershell
-.\vcpkg\bootstrap-vcpkg.bat
-```
-
-This will build vcpkg and prepare it for dependency management.
-
-### Step 3: Configure CMake
-
-**Option A: Using Presets (Recommended)**
+Windows (any shell; the preset uses the newest installed Visual Studio):
 
 ```powershell
 cmake --preset win-rel
+cmake --build --preset win-rel --parallel
+ctest --preset win-tests
 ```
 
-**Option B: Manual Configuration**
+To pick a specific Visual Studio, name the generator on the first configure, for example
+`cmake --preset win-rel -G "Visual Studio 17 2022"`. It must be the newest one installed,
+because that is the one vcpkg uses for the dependencies.
 
-```powershell
-cmake -S . -B build -G Ninja `
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-  -DCMAKE_TOOLCHAIN_FILE="$PWD\vcpkg\scripts\buildsystems\vcpkg.cmake" `
-  -DAEROFORGE_WITH_IMGUI=ON `
-  -DAEROFORGE_WITH_DJI=OFF
-```
-
-### Step 4: Build
-
-```powershell
-cmake --build --preset win-rel -j
-```
-
-Or manually:
-```powershell
-cmake --build build --config RelWithDebInfo -j
-```
-
-### Step 5: Run
-
-```powershell
-# Demo viewer
-.\build\win-rel\bin\RelWithDebInfo\demo_viewer.exe
-
-# AeroForge-Track
-.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --config configs\track_colorball.yml
-```
-
-### Step 6: Run Tests
-
-```powershell
-ctest --preset win-tests --output-on-failure
-```
-
----
-
-## macOS Build
-
-### Step 1: Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/aeroforge.git
-cd aeroforge
-git submodule update --init --recursive
-```
-
-### Step 2: Bootstrap vcpkg
-
-```bash
-./vcpkg/bootstrap-vcpkg.sh
-```
-
-### Step 3: Configure CMake
+macOS:
 
 ```bash
 cmake --preset mac-rel
+cmake --build --preset mac-rel --parallel
+ctest --preset mac-tests
 ```
 
-Or manually:
-```bash
-cmake -S . -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DCMAKE_TOOLCHAIN_FILE="$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake" \
-  -DAEROFORGE_WITH_IMGUI=ON \
-  -DAEROFORGE_WITH_DJI=OFF
-```
-
-### Step 4: Build
+Linux:
 
 ```bash
-cmake --build --preset mac-rel -j
+cmake --preset linux-rel
+cmake --build --preset linux-rel --parallel
+ctest --preset linux-tests
 ```
 
-### Step 5: Run
+Other presets: `win-debug`, `mac-debug` and `linux-debug` (Debug; the two Unix ones turn on
+AddressSanitizer and UBSan), `linux-headless` (no GUI libraries linked, for servers and
+CI). `cmake --list-presets` shows what applies to your platform.
 
-```bash
-# Demo viewer
-./build/mac-rel/bin/demo_viewer
+## 3. Run
 
-# AeroForge-Track
-./build/mac-rel/bin/aeroforge-track --config configs/track_colorball.yml
+Executables are in `build/<preset>/bin/` (`bin/RelWithDebInfo/` with Visual Studio).
+
+```powershell
+# GUI, webcam, click-and-drag target selection
+.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --config configs\track_interactive.yml
+
+# GUI, replaying a video file
+.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --config configs\track_interactive.yml --input path\to\clip.mp4
+
+# No window: replay a file, follow the region x,y,w,h from the first frame, print a JSON report
+.\build\win-rel\bin\RelWithDebInfo\aeroforge-track.exe --headless --config configs\track_interactive.yml --input path\to\clip.avi --roi 100,120,64,64
 ```
 
-### Step 6: Run Tests
+`--help` lists all options. Run from the repository root so relative paths in configs
+resolve.
 
-```bash
-ctest --preset mac-tests --output-on-failure
-```
+Which video files open depends on the OpenCV backends on your platform (Media Foundation
+on Windows, AVFoundation on macOS, GStreamer/V4L on Linux). Motion-JPEG `.avi` always
+works because OpenCV decodes it itself.
 
----
+## Options
 
-## Linux Build
+| CMake option | Default | Meaning |
+|--------------|---------|---------|
+| `AEROFORGE_WITH_IMGUI` | `ON` | Build the GUI (GLFW + OpenGL + Dear ImGui). `OFF` gives a headless-only application |
+| `AEROFORGE_BUILD_TESTS` | `ON` | Build tests |
+| `AEROFORGE_BUILD_APPS` | `ON` | Build `aeroforge-track` and `demo_viewer` |
+| `AEROFORGE_ENABLE_SANITIZERS` | `OFF` | ASan + UBSan, Clang/GCC Debug builds only |
+| `AEROFORGE_WITH_DJI` | `OFF` | Not available: configuring with `ON` stops with an explanation |
 
-### Step 1: Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/aeroforge.git
-cd aeroforge
-git submodule update --init --recursive
-```
-
-### Step 2: Bootstrap vcpkg
-
-```bash
-./vcpkg/bootstrap-vcpkg.sh
-```
-
-### Step 3: Configure CMake
-
-Linux doesn't have a preset by default, so configure manually:
-
-```bash
-cmake -S . -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DCMAKE_TOOLCHAIN_FILE="$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake" \
-  -DAEROFORGE_WITH_IMGUI=ON \
-  -DAEROFORGE_WITH_DJI=OFF
-```
-
-### Step 4: Build
-
-```bash
-cmake --build build -j$(nproc)
-```
-
-### Step 5: Run
-
-```bash
-# Demo viewer
-./build/bin/demo_viewer
-
-# AeroForge-Track
-./build/bin/aeroforge-track --config configs/track_colorball.yml
-```
-
-### Step 6: Run Tests
-
-```bash
-cd build
-ctest --output-on-failure
-```
-
----
-
-## Build Options
-
-### CMake Options
-
-| Option                         | Default | Description                                   |
-|--------------------------------|---------|-----------------------------------------------|
-| `AEROFORGE_WITH_IMGUI`         | `ON`    | Enable ImGui HUD (requires GLFW + OpenGL)     |
-| `AEROFORGE_WITH_DJI`           | `OFF`   | Enable DJI SDK integration (experimental)     |
-| `AEROFORGE_BUILD_TESTS`        | `ON`    | Build unit and integration tests              |
-| `AEROFORGE_BUILD_APPS`         | `ON`    | Build demo_viewer and aeroforge-track apps    |
-| `AEROFORGE_ENABLE_SANITIZERS`  | `OFF`   | Enable AddressSanitizer + UBSan (Debug only)  |
-
-Example with options:
-```bash
-cmake --preset mac-rel \
-  -DAEROFORGE_BUILD_TESTS=OFF \
-  -DAEROFORGE_WITH_DJI=ON
-```
-
-### Debug Build
-
-For debugging with symbols and sanitizers (macOS/Linux):
-
-```bash
-cmake --preset mac-debug  # or configure manually with Debug
-cmake --build --preset mac-debug -j
-```
-
-On macOS Debug builds, sanitizers are enabled by default.
-
----
+Warnings are errors (`/W4 /WX`, `-Wall -Wextra -Werror -pedantic`).
 
 ## Troubleshooting
 
-### Issue: vcpkg fails to bootstrap
+- **`Could not find toolchain file .../vcpkg/scripts/buildsystems/vcpkg.cmake`**: step 1
+  was skipped; clone vcpkg into `vcpkg/`.
+- **Configure seems to hang**: it is building dependencies. Progress is in
+  `vcpkg/buildtrees/<package>/` and at the end in `build/<preset>/vcpkg-manifest-install.log`.
+- **`generator does not match the generator used previously`**: the build directory was
+  created with another generator. Reconfigure it with `cmake --fresh --preset <name>`.
+- **`unresolved external symbol __std_find_trivial_1` (or similar `__std_*`) when linking
+  tests**: the project is being built with an older Visual Studio than the one vcpkg used
+  for the dependencies. Reconfigure with the newest installed generator:
+  `cmake --fresh --preset win-rel -G "Visual Studio 17 2022"`.
+- **The first frame from a webcam takes most of a minute on Windows**: fixed in the
+  application (it disables OpenCV's Media Foundation hardware-transform probe). If you
+  use OpenCV elsewhere, set `OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS=0`.
+- **A dependency fails to build**: read the log path vcpkg prints. On Linux it is almost
+  always a missing system package from the list above.
+- **Webcam does not open on macOS**: grant camera access to your terminal in System
+  Settings, Privacy & Security, Camera.
+- **A video file does not open**: try a Motion-JPEG `.avi` to separate codec problems from
+  path problems.
 
-**Solution**: Ensure you have internet access and Git is installed. Try:
-```bash
-git submodule update --init --recursive
-rm -rf vcpkg/buildtrees vcpkg/packages
-./vcpkg/bootstrap-vcpkg.sh  # or .bat on Windows
-```
+## Optional: PyTracking detector
 
-### Issue: CMake can't find OpenCV
-
-**Symptom**: `Could not find a package configuration file provided by "OpenCV"`
-
-**Solution**: vcpkg manages dependencies. Ensure vcpkg toolchain is specified:
-```bash
--DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake
-```
-
-### Issue: ImGui headers not found
-
-**Symptom**: `fatal error: imgui.h: No such file or directory`
-
-**Solution**: Rebuild vcpkg dependencies:
-```bash
-./vcpkg/vcpkg install --triplet x64-windows  # Windows
-./vcpkg/vcpkg install --triplet x64-osx      # macOS
-./vcpkg/vcpkg install --triplet x64-linux    # Linux
-```
-
-### Issue: Webcam access denied (macOS)
-
-**Symptom**: App crashes or fails to open camera
-
-**Solution**: Grant camera permissions in System Preferences → Security & Privacy → Camera
-
-### Issue: Linking errors on Windows
-
-**Symptom**: `unresolved external symbol` errors
-
-**Solution**:
-1. Ensure you're building with the same configuration (Debug vs Release)
-2. Clean and rebuild:
-   ```powershell
-   cmake --build build --target clean
-   cmake --build build --config RelWithDebInfo -j
-   ```
-
-### Issue: Tests fail with "Segmentation fault"
-
-**Solution**: Check if you're running out of memory. Reduce parallel jobs:
-```bash
-cmake --build build -j2  # instead of -j
-```
-
----
-
-## Advanced: Cross-Compilation for Jetson Nano
-
-(Future support - planned for v0.2.0)
-
-```bash
-# On host machine
-export CMAKE_TOOLCHAIN_FILE=<path-to-jetson-toolchain.cmake>
-cmake -S . -B build-jetson -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DAEROFORGE_WITH_CUDA=ON
-```
-
----
-
-## Need Help?
-
-- **GitHub Issues**: [Report a build problem](https://github.com/YOUR_USERNAME/aeroforge/issues)
-- **Discussions**: [Ask a question](https://github.com/YOUR_USERNAME/aeroforge/discussions)
-- **Discord**: [Join our community](https://discord.gg/YOUR_INVITE)
-
----
-
-**Happy Building! 🚀**
+A deep-learning tracker running in a Python process. Windows only at present. Setup is in
+`PYTRACKING_INTEGRATION.md`; select it with `configs/track_pytracking.yaml`. The default
+build and all tests work without it.

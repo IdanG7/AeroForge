@@ -1,10 +1,12 @@
 #pragma once
 
-#include <opencv2/opencv.hpp>
+#include "validity.hpp"
+
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <opencv2/opencv.hpp>
 #include <optional>
 #include <vector>
 
@@ -17,9 +19,9 @@ namespace af
 
 struct Frame
 {
-  uint64_t seq{};
-  double timestamp_s{};
-  cv::Mat img; // BGR/RGB; prealloc pool used by capture
+  uint64_t seq{};       // increases by one per frame delivered by a source, starts at 0
+  double timestamp_s{}; // seconds on the source's monotonic clock (see io.hpp)
+  cv::Mat img;          // BGR, 8-bit
 };
 
 struct Detection
@@ -28,7 +30,8 @@ struct Detection
   cv::Rect bbox;
   cv::Point2f centroid;
   float score{1.0f};
-  std::optional<cv::Mat> rvec; // ArUco pose (optional)
+  Validity validity{Validity::Fresh}; // Predicted when the tracker coasted through this frame
+  std::optional<cv::Mat> rvec;        // ArUco pose (optional)
   std::optional<cv::Mat> tvec;
 };
 
@@ -36,8 +39,7 @@ struct Detection
 // Single-Producer Single-Consumer Lock-Free Ring Buffer
 // ──────────────────────────────────────────────────────────────────────────
 
-template <typename T, size_t N>
-class SpscRingBuffer
+template <typename T, size_t N> class SpscRingBuffer
 {
 public:
   SpscRingBuffer() : head_(0), tail_(0) {}
@@ -100,6 +102,9 @@ class FramePool
 {
 public:
   FramePool(size_t count, int width, int height, int type = CV_8UC3);
+  ~FramePool(); // defined where Impl is complete
+  FramePool(const FramePool&) = delete;
+  FramePool& operator=(const FramePool&) = delete;
   std::optional<Frame> acquire();
   void release(Frame&& frame);
   size_t available() const;
@@ -113,6 +118,8 @@ private:
 // Timing utilities
 // ──────────────────────────────────────────────────────────────────────────
 
+// Seconds on a monotonic clock (std::chrono::steady_clock). Only differences are
+// meaningful; never compare with wall-clock time.
 double now_seconds();
 
 class ScopedTimer

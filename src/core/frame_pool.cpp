@@ -1,4 +1,5 @@
 #include "aeroforge/core.hpp"
+
 #include <mutex>
 #include <queue>
 
@@ -28,6 +29,8 @@ FramePool::FramePool(size_t count, int width, int height, int type)
     : impl_(std::make_unique<Impl>(count, width, height, type))
 {
 }
+
+FramePool::~FramePool() = default;
 
 std::optional<Frame> FramePool::acquire()
 {

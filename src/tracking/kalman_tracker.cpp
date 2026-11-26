@@ -1,22 +1,30 @@
-#include "aeroforge/plugin.hpp"
 #include "aeroforge/math.hpp"
+#include "aeroforge/modules.hpp"
+
+#include <cmath>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 namespace af
+{
+namespace
 {
 
 class KalmanTracker : public ITracker
 {
 public:
-  KalmanTracker(double q, double r) : q_(q), r_(r)
-  {
-    spdlog::info("[KalmanTracker] q={}, r={}", q, r);
-  }
+  KalmanTracker(double q, double r) : q_(q), r_(r) { spdlog::info("[KalmanTracker] q={}, r={}", q, r); }
 
   void process(Frame& frame) override { (void)frame; }
 
   std::vector<Detection> update(double dt, const std::vector<Detection>& detections) override
   {
+    if (!std::isfinite(dt) || dt <= 0.0)
+    {
+      // No usable time step: pass measurements through unfiltered rather than corrupt state
+      return detections;
+    }
+
     if (detections.empty())
     {
       // No measurements; just predict
@@ -35,8 +43,7 @@ public:
       // Initialize filter with first detection
       filter_.init(det.centroid.x, det.centroid.y);
       initialized_ = true;
-      spdlog::debug("[KalmanTracker] Initialized at ({:.1f}, {:.1f})", det.centroid.x,
-                    det.centroid.y);
+      spdlog::debug("[KalmanTracker] Initialized at ({:.1f}, {:.1f})", det.centroid.x, det.centroid.y);
     }
     else
     {
@@ -58,6 +65,8 @@ public:
 
     return {smoothed};
   }
+
+  void reset() override { initialized_ = false; }
 
   const char* name() const override { return "KalmanTracker"; }
 
@@ -99,5 +108,16 @@ private:
   bool initialized_{false};
   Kalman2D filter_{q_, r_};
 };
+
+} // namespace
+
+std::unique_ptr<ITracker> make_kalman_tracker(double q, double r)
+{
+  if (!std::isfinite(q) || !std::isfinite(r) || q < 0.0 || r <= 0.0)
+  {
+    throw std::invalid_argument("kalman: q must be >= 0 and r must be > 0");
+  }
+  return std::make_unique<KalmanTracker>(q, r);
+}
 
 } // namespace af

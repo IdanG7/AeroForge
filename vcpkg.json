@@ -2,10 +2,32 @@
   "name": "aeroforge",
   "version-string": "0.1.0",
   "dependencies": [
-    "opencv4",
+    {
+      "name": "opencv4",
+      "default-features": false,
+      "features": [
+        "calib3d",
+        "fs",
+        "intrinsics",
+        "jpeg",
+        "png",
+        "thread",
+        {
+          "name": "dshow",
+          "platform": "windows"
+        },
+        {
+          "name": "msmf",
+          "platform": "windows"
+        }
+      ]
+    },
     {
       "name": "imgui",
-      "features": ["glfw-binding", "opengl3-binding"]
+      "features": [
+        "glfw-binding",
+        "opengl3-binding"
+      ]
     },
     "glfw3",
     "yaml-cpp",
@@ -13,6 +35,7 @@
     "spdlog",
     "catch2",
     "eigen3",
+    "nlohmann-json",
     "msgpack"
   ]
 }

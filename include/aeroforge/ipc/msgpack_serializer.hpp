@@ -4,10 +4,11 @@
 #pragma once
 
 #include "aeroforge/core.hpp"
+
 #include <msgpack.hpp>
-#include <vector>
-#include <string>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace af
 {
@@ -29,8 +30,7 @@ public:
    * @param detections Detections to send
    * @return Serialized message bytes
    */
-  static std::vector<uint8_t> serialize_update_request(double dt,
-                                                       const std::vector<Detection>& detections);
+  static std::vector<uint8_t> serialize_update_request(double dt, const std::vector<Detection>& detections);
 
   /**
    * @brief Deserialize an update response.
@@ -43,8 +43,7 @@ public:
    * @return true if successful, false on error
    */
   static bool deserialize_update_response(const std::vector<uint8_t>& data,
-                                         std::vector<Detection>& detections_out,
-                                         std::string& error_msg_out);
+                                          std::vector<Detection>& detections_out, std::string& error_msg_out);
 
 private:
   // Protocol version

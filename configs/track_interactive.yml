@@ -1,0 +1,63 @@
+# Default demo: click and drag on the image to pick a target, tracked by the built-in
+# C++ tracker (no Python, no GPU). Works with a webcam or a recorded video.
+pipeline:
+  input:
+    type: webcam        # webcam | file | stream
+    device: 0
+    # path: recordings/flight.mp4   # required for type: file / stream
+    # loop: true                    # file only
+    # mirror: true                  # default: true for webcam, false otherwise
+    size:
+      width: 1280
+      height: 720
+      fps: 30
+
+  modules:
+    - name: detector
+      type: interactive
+      # params:
+      #   perf_csv: tracking_performance.csv   # per-frame tracking quality log
+
+    - name: tracker
+      type: kalman
+      params:
+        q: 0.02
+        r: 0.20
+
+    # Range from apparent size. object_diameter_m MUST be the real size of the object you
+    # select; with a wrong value every distance (and the simulated follow command) is
+    # wrong by the same factor. Remove this module if the size is unknown.
+    - name: estimator
+      type: size_based
+      params:
+        object_diameter_m: 0.20
+        fx: 920.0
+        fy: 920.0
+        cx: 640.0
+        cy: 360.0
+
+    # Simulation only: commands go to the built-in simulated vehicle.
+    - name: controller
+      type: pid_velocity
+      params:
+        desired_offset_m: [-3.0, 0.0, 0.0]   # stay 3 m behind the target (body frame)
+        kp: [0.8, 0.8, 0.6]
+        ki: [0.0, 0.0, 0.0]
+        kd: [0.1, 0.1, 0.08]
+        max_speed_mps: 3.0
+
+  sinks:
+    - type: hud
+
+safety:
+  require_hold_to_enable: true   # true: hold F; false: F toggles
+  e_stop_key: "SPACE"
+  stale_timeout_s: 0.5
+  limits:
+    max_speed_mps: 6.0
+    min_follow_dist_m: 2.0
+    max_follow_dist_m: 10.0
+  geofence:
+    min_alt_m: 3.0
+    max_alt_m: 60.0
+    max_radius_m: 120.0

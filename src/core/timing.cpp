@@ -1,4 +1,5 @@
 #include "aeroforge/core.hpp"
+
 #include <chrono>
 
 namespace af
@@ -7,7 +8,7 @@ namespace af
 double now_seconds()
 {
   using namespace std::chrono;
-  auto now = high_resolution_clock::now();
+  auto now = steady_clock::now();
   auto dur = now.time_since_epoch();
   return duration_cast<duration<double>>(dur).count();
 }

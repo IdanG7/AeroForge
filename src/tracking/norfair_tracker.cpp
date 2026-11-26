@@ -1,14 +1,19 @@
 // Copyright (c) 2025 AeroForge
 // SPDX-License-Identifier: MIT
 
-#include "aeroforge/plugin.hpp"
-#include "aeroforge/ipc/socket_client.hpp"
 #include "aeroforge/ipc/msgpack_serializer.hpp"
-#include <spdlog/spdlog.h>
+#include "aeroforge/ipc/socket_client.hpp"
+#include "aeroforge/modules.hpp"
+
+#include <algorithm>
 #include <chrono>
-#include <thread>
+#include <cmath>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
 
 namespace af
+{
+namespace
 {
 
 /**
@@ -35,16 +40,12 @@ public:
    * @param auto_reconnect Enable automatic reconnection on failure
    * @param reconnect_max_interval_s Maximum reconnection interval (seconds)
    */
-  NorfairTracker(const std::string& socket_path, int timeout_ms = 500,
-                bool auto_reconnect = true, double reconnect_max_interval_s = 10.0)
-    : socket_path_(socket_path),
-      timeout_ms_(timeout_ms),
-      auto_reconnect_(auto_reconnect),
-      reconnect_max_interval_s_(reconnect_max_interval_s),
-      client_(std::make_unique<ipc::SocketClient>(socket_path, timeout_ms)),
-      reconnect_interval_s_(1.0),
-      last_reconnect_attempt_(std::chrono::steady_clock::now()),
-      fallback_mode_(false)
+  NorfairTracker(const std::string& socket_path, int timeout_ms = 500, bool auto_reconnect = true,
+                 double reconnect_max_interval_s = 10.0)
+      : socket_path_(socket_path), timeout_ms_(timeout_ms), auto_reconnect_(auto_reconnect),
+        reconnect_max_interval_s_(reconnect_max_interval_s),
+        client_(std::make_unique<ipc::SocketClient>(socket_path, timeout_ms)), reconnect_interval_s_(1.0),
+        last_reconnect_attempt_(std::chrono::steady_clock::now()), fallback_mode_(false)
   {
     spdlog::info("[NorfairTracker] Initialized with socket: {}", socket_path_);
     spdlog::info("[NorfairTracker] Timeout: {}ms, Auto-reconnect: {}", timeout_ms_, auto_reconnect_);
@@ -89,7 +90,7 @@ public:
           // Exponential backoff
           reconnect_interval_s_ = std::min(reconnect_interval_s_ * 2.0, reconnect_max_interval_s_);
           spdlog::warn("[NorfairTracker] Reconnection failed, next attempt in {:.1f}s",
-                      reconnect_interval_s_);
+                       reconnect_interval_s_);
         }
       }
     }
@@ -117,8 +118,8 @@ public:
     std::vector<Detection> tracked_detections;
     std::string error_msg;
 
-    if (!ipc::MessagePackSerializer::deserialize_update_response(response_data.value(),
-                                                                tracked_detections, error_msg))
+    if (!ipc::MessagePackSerializer::deserialize_update_response(response_data.value(), tracked_detections,
+                                                                 error_msg))
     {
       spdlog::error("[NorfairTracker] Failed to parse response: {}", error_msg);
       fallback_mode_ = true;
@@ -126,7 +127,7 @@ public:
     }
 
     spdlog::debug("[NorfairTracker] Tracked {} objects from {} detections", tracked_detections.size(),
-                 detections.size());
+                  detections.size());
 
     return tracked_detections;
   }
@@ -148,5 +149,25 @@ private:
   // Fallback mode (pass-through when service unavailable)
   bool fallback_mode_;
 };
+
+} // namespace
+
+std::unique_ptr<ITracker> make_norfair_tracker(const std::string& socket_path, int timeout_ms,
+                                               bool auto_reconnect, double reconnect_max_interval_s)
+{
+  if (socket_path.empty())
+  {
+    throw std::invalid_argument("norfair: socket_path must not be empty");
+  }
+  if (timeout_ms <= 0)
+  {
+    throw std::invalid_argument("norfair: timeout_ms must be > 0");
+  }
+  if (!std::isfinite(reconnect_max_interval_s) || reconnect_max_interval_s < 1.0)
+  {
+    throw std::invalid_argument("norfair: reconnect_max_interval_s must be >= 1");
+  }
+  return std::make_unique<NorfairTracker>(socket_path, timeout_ms, auto_reconnect, reconnect_max_interval_s);
+}
 
 } // namespace af

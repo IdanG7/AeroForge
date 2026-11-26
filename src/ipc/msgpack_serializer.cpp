@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "aeroforge/ipc/msgpack_serializer.hpp"
+
 #include <spdlog/spdlog.h>
 
 namespace af
@@ -9,8 +10,8 @@ namespace af
 namespace ipc
 {
 
-std::vector<uint8_t> MessagePackSerializer::serialize_update_request(
-  double dt, const std::vector<Detection>& detections)
+std::vector<uint8_t> MessagePackSerializer::serialize_update_request(double dt,
+                                                                     const std::vector<Detection>& detections)
 {
   // Build request map
   msgpack::sbuffer buffer;
@@ -33,7 +34,7 @@ std::vector<uint8_t> MessagePackSerializer::serialize_update_request(
 
   // detections field
   packer.pack("detections");
-  packer.pack_array(detections.size());
+  packer.pack_array(static_cast<uint32_t>(detections.size()));
 
   for (const auto& det : detections)
   {
@@ -69,8 +70,8 @@ std::vector<uint8_t> MessagePackSerializer::serialize_update_request(
 }
 
 bool MessagePackSerializer::deserialize_update_response(const std::vector<uint8_t>& data,
-                                                       std::vector<Detection>& detections_out,
-                                                       std::string& error_msg_out)
+                                                        std::vector<Detection>& detections_out,
+                                                        std::string& error_msg_out)
 {
   try
   {

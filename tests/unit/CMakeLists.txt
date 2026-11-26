@@ -2,14 +2,18 @@
 # Unit Tests
 # ──────────────────────────────────────────────────────────────────────────
 
-add_executable(test_ring_buffer test_ring_buffer.cpp)
-target_link_libraries(test_ring_buffer PRIVATE af_core Catch2::Catch2WithMain)
-catch_discover_tests(test_ring_buffer)
+function(af_add_unit_test name)
+  add_executable(${name} ${name}.cpp)
+  target_link_libraries(${name} PRIVATE af_pipeline Catch2::Catch2WithMain)
+  catch_discover_tests(${name})
+endfunction()
 
-add_executable(test_pid test_pid.cpp)
-target_link_libraries(test_pid PRIVATE af_core Catch2::Catch2WithMain)
-catch_discover_tests(test_pid)
+af_add_unit_test(test_ring_buffer)
+af_add_unit_test(test_pid)
+af_add_unit_test(test_kalman)
+af_add_unit_test(test_estimators)
+af_add_unit_test(test_control_sim)
+af_add_unit_test(test_safety_gate)
+af_add_unit_test(test_config)
 
-add_executable(test_kalman test_kalman.cpp)
-target_link_libraries(test_kalman PRIVATE af_core Catch2::Catch2WithMain)
-catch_discover_tests(test_kalman)
+af_add_unit_test(test_norfair)

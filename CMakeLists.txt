@@ -60,11 +60,13 @@ endif()
 # Dependencies
 # ──────────────────────────────────────────────────────────────────────────
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui)
+# Only modules from the main OpenCV repository are used (no opencv_contrib).
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs videoio video features2d objdetect)
 find_package(Eigen3 REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
 find_package(msgpack-cxx REQUIRED)
 
 if(AEROFORGE_WITH_IMGUI)
@@ -91,6 +93,7 @@ add_library(af_core STATIC
   # Math
   src/math/pid.cpp
   src/math/kalman.cpp
+  src/math/frames.cpp
 
   # Config
   src/config/loader.cpp
@@ -113,17 +116,17 @@ target_link_libraries(af_core
     opencv_core
     opencv_imgproc
     opencv_videoio
-    # opencv_aruco  # Temporarily disabled
     Eigen3::Eigen
     fmt::fmt
     spdlog::spdlog
-    yaml-cpp
+    yaml-cpp::yaml-cpp
 )
 
 target_compile_definitions(af_core
   PUBLIC
     $<$<BOOL:${AEROFORGE_WITH_DJI}>:AEROFORGE_WITH_DJI>
     $<$<BOOL:${AEROFORGE_WITH_IMGUI}>:AEROFORGE_WITH_IMGUI>
+    AEROFORGE_VERSION="${PROJECT_VERSION}"
 )
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -161,7 +164,7 @@ endif()
 
 add_library(af_vision STATIC
   src/vision/detector_colorball.cpp
-  # src/vision/detector_aruco.cpp  # Temporarily disabled - requires opencv_contrib
+  src/vision/detector_aruco.cpp
 )
 
 target_include_directories(af_vision
@@ -174,7 +177,7 @@ target_link_libraries(af_vision
   PUBLIC
     af_core
     opencv_imgproc
-    # opencv_aruco  # Temporarily disabled
+    opencv_objdetect
 )
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -183,6 +186,8 @@ target_link_libraries(af_vision
 
 add_library(af_tracking STATIC
   src/tracking/kalman_tracker.cpp
+  src/tracking/template_tracker.cpp
+  src/tracking/pytracking_iface.cpp
   src/tracking/norfair_tracker.cpp
   src/ipc/socket_client.cpp
   src/ipc/msgpack_serializer.cpp
@@ -197,7 +202,13 @@ target_include_directories(af_tracking
 target_link_libraries(af_tracking
   PUBLIC
     af_core
+    opencv_imgproc
+    opencv_imgcodecs
+    opencv_video
+    opencv_features2d
     msgpack-cxx
+  PRIVATE
+    nlohmann_json::nlohmann_json
 )
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -226,6 +237,7 @@ target_link_libraries(af_estimate
 
 add_library(af_control STATIC
   src/control/controller_pid_velocity.cpp
+  src/safety/safety_gate.cpp
 )
 
 target_include_directories(af_control
@@ -240,10 +252,37 @@ target_link_libraries(af_control
 )
 
 # ──────────────────────────────────────────────────────────────────────────
+# Pipeline library (builds the module chain from a config)
+# ──────────────────────────────────────────────────────────────────────────
+
+add_library(af_pipeline STATIC
+  src/pipeline/pipeline.cpp
+)
+
+target_include_directories(af_pipeline
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(af_pipeline
+  PUBLIC
+    af_core
+    af_vision
+    af_tracking
+    af_estimate
+    af_control
+)
+
+# ──────────────────────────────────────────────────────────────────────────
 # DJI library (optional, gated by build flag)
 # ──────────────────────────────────────────────────────────────────────────
 
 if(AEROFORGE_WITH_DJI)
+  message(FATAL_ERROR
+    "AEROFORGE_WITH_DJI=ON is not available: there is no desktop DJI backend in this "
+    "repository (src/dji/dji_sdk_wrapper.cpp does not exist). The DJI Mini 2 is reached "
+    "through the iOS bridge described in docs/HARDWARE_COMPATIBILITY.md.")
   add_library(af_dji STATIC
     src/dji/dji_sdk_wrapper.cpp
   )
@@ -283,7 +322,7 @@ endif()
 
 include(GNUInstallDirs)
 
-install(TARGETS af_core af_vision af_tracking af_estimate af_control
+install(TARGETS af_core af_vision af_tracking af_estimate af_control af_pipeline
   EXPORT AeroForgeTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
