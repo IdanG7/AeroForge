@@ -318,3 +318,52 @@ pipeline:
   source->close();
   std::remove(path.c_str());
 }
+
+namespace
+{
+
+// The synthetic target blended with unrelated structure: `alpha` = 1 is the clean target
+cv::Mat degraded_target_frame(double alpha)
+{
+  cv::Mat blocks(16, 16, CV_8UC3);
+  cv::RNG rng(4321);
+  rng.fill(blocks, cv::RNG::UNIFORM, 0, 256);
+  cv::Mat clutter;
+  cv::resize(blocks, clutter, cv::Size(synth::kTargetSize, synth::kTargetSize), 0, 0, cv::INTER_NEAREST);
+
+  cv::Mat frame = synth::background();
+  cv::Mat patch;
+  cv::addWeighted(synth::target_patch(), alpha, clutter, 1.0 - alpha, 0.0, patch);
+  patch.copyTo(frame(synth::target_rect(0)));
+  return frame;
+}
+
+} // namespace
+
+TEST_CASE("Template tracker re-acquires a degraded target late in an occlusion", "[integration][tracking]")
+{
+  auto tracker = af::make_template_tracker();
+  REQUIRE(tracker->set_roi(synth::target_rect(0), synth::tracking_frame(0)));
+
+  int i = 1;
+  for (; i <= 20; ++i)
+  {
+    REQUIRE(tracker->detect(make_frame(i, synth::tracking_frame(0))).size() == 1);
+  }
+
+  // Hidden for 44 frames: past the point where the prediction stops contributing, one
+  // frame short of the target being dropped
+  for (int k = 0; k < 44; ++k, ++i)
+  {
+    tracker->detect(make_frame(i, synth::tracking_frame(0, false)));
+  }
+  REQUIRE(tracker->is_tracking());
+
+  // Back, but only a moderate visual match. The prediction's weight used to go negative
+  // here and vetoed the match, so the target was dropped two frames later.
+  const auto dets = tracker->detect(make_frame(i, degraded_target_frame(0.40)));
+  REQUIRE(dets.size() == 1);
+  REQUIRE(dets[0].validity == af::Validity::Fresh);
+  REQUIRE(distance(dets[0].centroid, synth::target_center(0)) < 8.0);
+  REQUIRE(tracker->is_tracking());
+}

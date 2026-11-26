@@ -173,6 +173,8 @@ public:
     void init_kalman(float x, float y, float vx, float vy)
     {
       kalman.statePost = (cv::Mat_<float>(6, 1) << x, y, vx, vy, 0, 0);
+      // A reused slot must not inherit the previous target's confidence
+      cv::setIdentity(kalman.errorCovPost, cv::Scalar::all(1.0));
       kalman_initialized = true;
     }
 
@@ -514,8 +516,10 @@ public:
 
       // Weight the tracking methods based on their confidence
       float template_weight = template_score;
-      float feature_weight = feature_score * 0.8f;                   // Features slightly less reliable
-      float kalman_weight = 0.3f * (1.0f - obj.lost_frames / 30.0f); // Decay with lost frames
+      float feature_weight = feature_score * 0.8f; // Features slightly less reliable
+      // Decays with lost frames and stops at zero: a negative weight would subtract from the
+      // visual evidence and push the fused position away from the prediction
+      float kalman_weight = 0.3f * std::max(0.0f, 1.0f - obj.lost_frames / 30.0f);
 
       float total_weight = template_weight + feature_weight + kalman_weight;
 
