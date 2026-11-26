@@ -69,14 +69,22 @@ jobs:
       # Dependencies are built once per platform and manifest, then restored as prebuilt
       # packages. vcpkg decides per package whether a cached build still matches, so a
       # stale cache is only slower, never wrong.
+      # The runner image version is part of the key: vcpkg only reuses a package built with
+      # the same compiler and tools, and GitHub rolls out new images gradually, so two runs
+      # minutes apart can land on different images.
+      - name: Identify runner image
+        id: image
+        shell: bash
+        run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
       - name: Restore vcpkg binary cache
         id: vcpkg-cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.vcpkg-cache
-          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-${{ steps.image.outputs.version }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-
+            vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}-
 
       - name: Set up vcpkg
         shell: bash
